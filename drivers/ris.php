@@ -38,6 +38,7 @@ class RefLib_ris {
 		'ST' => 'title-short',
 		'T1' => 'title', // The spec is publidshed in san-serif; T[ONE] is correct
 		'TI' => 'title', // The spec is publidshed in san-serif
+		'T2' => 'periodical-title', // Journal
 		'VL' => 'volume',
 		'PY' => 'year',
         'IS' => 'number' // Issue #
@@ -121,13 +122,13 @@ class RefLib_ris {
 			foreach ($rawrefextracted as $rawrefbit) {
                 // key/val mappings
                 if (isset($this->_mapHash[$rawrefbit[1]])) {
-                    $ref[$this->_mapHash[$rawrefbit[1]]] = $rawrefbit[2];
+                    $ref[$this->_mapHash[$rawrefbit[1]]] = trim($rawrefbit[2]);
                     continue;
                 }
 
                 // key/val(array) mappings
                 if (isset($this->_mapHashArray[$rawrefbit[1]])) {
-                    $ref[$this->_mapHashArray[$rawrefbit[1]]][] = $rawrefbit[2];
+                    $ref[$this->_mapHashArray[$rawrefbit[1]]][] = trim($rawrefbit[2]);
                     continue;
                 }
 
@@ -136,9 +137,9 @@ class RefLib_ris {
                     if (!is_array($rawref[$rawrefbit[1]])) {
                         $rawref[$rawrefbit[1]] = array($rawref[$rawrefbit[1]]);
                     }
-                    $rawref[$rawrefbit[1]][] = $rawrefbit[2];
+                    $rawref[$rawrefbit[1]][] = trim($rawrefbit[2]);
                 } else {
-                    $rawref[$rawrefbit[1]] = $rawrefbit[2];
+                    $rawref[$rawrefbit[1]] = trim($rawrefbit[2]);
                 }
 			}
 
