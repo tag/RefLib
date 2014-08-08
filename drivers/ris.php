@@ -38,9 +38,11 @@ class RefLib_ris {
 		'ST' => 'title-short',
 		'T1' => 'title', // The spec is publidshed in san-serif; T[ONE] is correct
 		'TI' => 'title', // The spec is publidshed in san-serif
+		'JO' => 'periodical-title', // Journal
 		'T2' => 'periodical-title', // Journal
 		'VL' => 'volume',
 		'PY' => 'year',
+		'Y1' => 'year', // Not a field in the spec, but used by Google Scholar
         'IS' => 'number' // Issue #
 	);
 
@@ -52,6 +54,7 @@ class RefLib_ris {
 	var $_mapHashArray = array(
 		// Prefered keys
 		'AU' => 'authors',
+		'A1' => 'authors',
 		'DO' => 'urls',
 
 		// Regular keys
