@@ -116,15 +116,18 @@ class RefLib_enw {
 	}
 
 	function SetContents($blob) {
-		if (!preg_match_all('!^%0\s+(.*?)\n\n!ms', $blob, $matches, PREG_SET_ORDER))
+		if (!preg_match_all('!^%0\s+(.*?)(?:\n(?:\n|\Z))!ms', $blob, $matches, PREG_SET_ORDER)) {
+            // \Z is end of string, even in multi-line mode
 			return;
+        }
+
 		$recno = 0;
 		foreach ($matches as $match) {
 			$recno++;
 			$ref = array('type' => strtolower($match[1]));
 
 			$rawref = array();
-			preg_match_all('!^(%[A-Z0-9])\s+(.*)$!m', $match[2], $rawrefextracted, PREG_SET_ORDER);
+			preg_match_all('!^(%[\S])\s+(.*)$!m', $match[0], $rawrefextracted, PREG_SET_ORDER);
 			foreach ($rawrefextracted as $rawrefbit) {
                 // key/val mappings
                 if (isset($this->_mapHash[$rawrefbit[1]])) {
