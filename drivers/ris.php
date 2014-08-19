@@ -41,6 +41,7 @@ class RefLib_ris {
 		'JO' => 'periodical-title', // Journal
 		'T2' => 'periodical-title', // Journal
 		'VL' => 'volume',
+		'AB' => 'abstract',
 		'PY' => 'year',
 		'Y1' => 'year', // Not a field in the spec, but used by Google Scholar
         'IS' => 'number' // Issue #
