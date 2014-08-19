@@ -4,8 +4,8 @@
 *
 * NOTE: This driver for RefLib has only limited support for ENW fields
 */
-class RefLib_ris {
-	var $driverName = 'RIS';
+class RefLib_enw {
+	var $driverName = 'ENW';
 
 	/**
 	* The parent instance of the RefLib class
