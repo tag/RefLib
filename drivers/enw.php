@@ -42,11 +42,11 @@ class RefLib_enw {
 
         '%T' => 'title',
         '%J' => 'periodical-title', // Journal
-        // 'VL' => 'volume',
+        '%V' => 'volume',
+        '%N' => 'number', // Issue #
         '%X' => 'abstract',
         '%D' => 'year',
         '%P' => 'pages'
-        //         'IS' => 'number' // Issue #
 	);
 
 	/**
