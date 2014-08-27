@@ -22,8 +22,7 @@ Examples
 Read in EndNote XML
 -------------------
 
-	require('reflib.php');
-	$lib = new RefLib();
+	$lib = new RefLib\RefLib();
 	$lib->SetContentsFile('tests/data/endnote.xml');
 
 	print_r($lib->refs); // Outputs all processed refs in an associative array
