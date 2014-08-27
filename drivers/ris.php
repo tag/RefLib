@@ -36,8 +36,15 @@ class RefLib_ris {
 		'SE' => 'section',
 		'SN' => 'isbn',
 		'ST' => 'title-short',
-		'TI' => 'title',
+		'T1' => 'title', // The spec is publidshed in san-serif; T[ONE] is correct
+		'TI' => 'title', // The spec is publidshed in san-serif
+		'JO' => 'periodical-title', // Journal
+		'T2' => 'periodical-title', // Journal
 		'VL' => 'volume',
+		'AB' => 'abstract',
+		'PY' => 'year',
+		'Y1' => 'year', // Not a field in the spec, but used by Google Scholar
+        'IS' => 'number' // Issue #
 	);
 
 	/**
@@ -48,6 +55,7 @@ class RefLib_ris {
 	var $_mapHashArray = array(
 		// Prefered keys
 		'AU' => 'authors',
+		'A1' => 'authors',
 		'DO' => 'urls',
 
 		// Regular keys
@@ -114,23 +122,31 @@ class RefLib_ris {
 			$ref = array('type' => strtolower($match[1]));
 
 			$rawref = array();
-			preg_match_all('!^([A-Z]{2})  - (.*)$!m', $match[2], $rawrefextracted, PREG_SET_ORDER);
-			foreach ($rawrefextracted as $rawrefbit)
-				$rawref[$rawrefbit[1]] = $rawrefbit[2];
+			preg_match_all('!^([A-Z0-9]{2})  - (.*)$!m', $match[2], $rawrefextracted, PREG_SET_ORDER);
+			foreach ($rawrefextracted as $rawrefbit) {
+                // key/val mappings
+                if (isset($this->_mapHash[$rawrefbit[1]])) {
+                    $ref[$this->_mapHash[$rawrefbit[1]]] = trim($rawrefbit[2]);
+                    continue;
+                }
 
-			// Simple key/val mappings {{{
-			foreach ($this->_mapHash as $ris => $reflib)
-				if (isset($rawref[$ris]))
-					$ref[$reflib] = $rawref[$ris];
-			// }}}
-			// Simple key/val(array) mappings {{{
-			foreach ($this->_mapHashArray as $ris => $reflib) {
-				if (isset($rawref[$ris])) {
-					if (!isset($ref[$reflib]))
-						$ref[$reflib] = array();
-					$ref[$reflib][] = $rawref[$ris];
-				}
+                // key/val(array) mappings
+                if (isset($this->_mapHashArray[$rawrefbit[1]])) {
+                    $ref[$this->_mapHashArray[$rawrefbit[1]]][] = trim($rawrefbit[2]);
+                    continue;
+                }
+
+                // unknowns go to $rawref to be handled later
+                if (isset($rawref[$rawrefbit[1]])) {
+                    if (!is_array($rawref[$rawrefbit[1]])) {
+                        $rawref[$rawrefbit[1]] = array($rawref[$rawrefbit[1]]);
+                    }
+                    $rawref[$rawrefbit[1]][] = trim($rawrefbit[2]);
+                } else {
+                    $rawref[$rawrefbit[1]] = trim($rawrefbit[2]);
+                }
 			}
+
 			// }}}
 			// Pages {{{
 			if (isset($rawref['SP']) && isset($rawref['EP'])) {
@@ -148,9 +164,6 @@ class RefLib_ris {
 					$ref['date'] = strtotime("{$date[1]}-{$date[2]}-01");
 				} elseif (preg_match('!([0-9]{4})/([0-9]{1,2})/([0-9]{1,2})/!', $rawref['PY'], $date)) // Full date
 					$ref['date'] = strtotime("{$date[1]}-{$date[2]}-{$date[1]}");
-			// }}}
-			if (isset($ref['authors']))
-				$ref['authors'] = implode(' AND ', $ref['authors']);
 
 			// Append to $this->parent->refs {{{
 			if (!$this->parent->refId) { // Use indexed array
