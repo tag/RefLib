@@ -1,4 +1,7 @@
 <?php
+
+namespace RefLib;
+
 /**
 * Class to manage a variety of citation reference libraries
 * @author Matt Carter <m@ttcarter.com>
@@ -115,7 +118,7 @@ class RefLib {
         if (!file_exists($file = dirname(__FILE__) . "/drivers/$driver.php"))
             return;
         require_once($file);
-        $driverName = "RefLib_" . ucfirst($driver);
+        $driverName = "\RefLib\RefLib_" . ucfirst($driver);
         $this->driver = new $driverName();
         $this->driver->parent = $this;
         $this->_activeDriver = $driver;

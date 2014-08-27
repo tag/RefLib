@@ -1,4 +1,7 @@
 <?php
+
+namespace RefLib;
+
 /**
 * CSV driver for RefLib
 */

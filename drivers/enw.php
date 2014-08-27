@@ -1,4 +1,7 @@
 <?php
+
+namespace RefLib;
+
 /**
 * RIS driver for RefLib
 *

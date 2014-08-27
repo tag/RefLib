@@ -1,4 +1,7 @@
 <?php
+
+use RefLib\RefLib as RefLib;
+
 require_once(dirname(__FILE__) . "/../reflib.php");
 
 $e = new RefLib();

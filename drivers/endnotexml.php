@@ -1,4 +1,7 @@
 <?php
+
+namespace RefLib;
+
 /**
 * EndNote XML driver for RefLib
 */
@@ -142,7 +145,7 @@ class RefLib_endnotexml {
     }
 
     function SetContents($xml) {
-        $dom = new SimpleXMLElement($xml);
+        $dom = new \SimpleXMLElement($xml);
         foreach ($dom->records->record as $record) {
             $ref = array(
                 'authors' => array(),
