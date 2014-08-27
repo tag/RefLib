@@ -1,11 +1,12 @@
 <?php
 
-namespace RefLib;
+namespace RefLib\Drivers;
 
 /**
 * CSV driver for RefLib
 */
-class RefLib_csv {
+class CsvDriver extends AbstractDriver
+{
     var $driverName = 'CSV';
 
     /**
@@ -79,10 +80,12 @@ class RefLib_csv {
     }
 
     function GetContents() {
+        throw new Exception(); // Not implemented
     }
 
-    function SetContents($blob) {
+    function import($blob) {
         $recno = 0;
+        $imported = [];
 
         foreach (explode("\n", $blob) as $line) {
             if (!$line)
@@ -108,21 +111,25 @@ class RefLib_csv {
                         $ref[$field] = $csv[$offset];
 
                 if (isset($ref['authors']))
-                    $ref['authors'] = $this->parent->joinAuthors($ref['authors']);
+                    $ref['authors'] = self::joinAuthors($ref['authors']);
+
+                $imported[] = $ref;
+                // TODO: Deal with refId later
                 // Append to $this->parent->refs {{{
-                if (!$this->parent->refId) { // Use indexed array
-                    $this->parent->refs[] = $ref;
-                } elseif (is_string($this->parent->refId)) { // Use assoc array
-                    if ($this->parent->refId == 'rec-number') {
-                        $this->parent->$refs[$recno] = $ref;
-                    } elseif (!isset($ref[$this->parent->refId])) {
-                        trigger_error("No ID found in reference to use as key");
-                    } else {
-                        $this->parent->refs[$ref[$this->parent->refId]] = $ref;
-                    }
-                }
+                // if (!$this->parent->refId) { // Use indexed array
+                //     $this->parent->refs[] = $ref;
+                // } elseif (is_string($this->parent->refId)) { // Use assoc array
+                //     if ($this->parent->refId == 'rec-number') {
+                //         $this->parent->$refs[$recno] = $ref;
+                //     } elseif (!isset($ref[$this->parent->refId])) {
+                //         trigger_error("No ID found in reference to use as key");
+                //     } else {
+                //         $this->parent->refs[$ref[$this->parent->refId]] = $ref;
+                //     }
+                // }
                 // }}}
             }
         }
+        return $imported;
     }
 }

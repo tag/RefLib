@@ -1,6 +1,7 @@
 <?php
 
 namespace RefLib\Drivers;
+use RefLib\RefLib as RefLib;
 
 /**
 * EndNote XML driver for RefLib
@@ -27,6 +28,37 @@ class EndNoteXmlDriver extends AbstractDriver
     * @var string
     */
     var $endNoteFile = 'EndNote.enl';
+
+    /**
+     *  @var array Maps (EndNoteXmlKey)=>(RefLibKey)
+     */
+    protected $map = array(
+        'titles/title' => 'title',
+        'titles/secondary-title' => 'title-secondary',
+        'titles/short-title'     => 'title-short',
+        'periodical/full-title'  => 'periodical-title',
+        'dates/year' => 'year',
+        'access-date' => 'access-date',
+        'auth-address' => 'address',
+        'pages' => 'pages',
+        'volume' => 'volume',
+        'number' => 'number',
+        'section' => 'section',
+        'abstract' => 'abstract',
+        'isbn' => 'isbn',
+        'notes' => 'notes',
+        'research-notes' => 'research-notes',
+        'label' => 'label',
+        'caption' => 'caption',
+        'language' => 'language',
+        'custom1' => 'custom1',
+        'custom2' => 'custom2',
+        'custom3' => 'custom3',
+        'custom4' => 'custom4',
+        'custom5' => 'custom5',
+        'custom6' => 'custom6',
+        'custom7' => 'custom7'
+    );
 
     /**
     * Escpe a string in an EndNote compatible way
@@ -91,28 +123,7 @@ class EndNoteXmlDriver extends AbstractDriver
                 $out .= '<periodical><full-title><style face="normal" font="default" size="100%">' . (isset($ref['periodical-title']) && $ref['periodical-title'] ? $this->_export($ref['periodical-title']) : '') . '</style></full-title></periodical>';
 
             // Simple key values
-            foreach (array(
-                'access-date' => 'access-date',
-                'auth-address' => 'address',
-                'pages' => 'pages',
-                'volume' => 'volume',
-                'number' => 'number', // issue #
-                'section' => 'section',
-                'abstract' => 'abstract',
-                'isbn' => 'isbn',
-                'label' => 'label',
-                'caption' => 'caption',
-                'language' => 'language',
-                'notes' => 'notes',
-                'research-notes' => 'research-notes',
-                'custom1' => 'custom1',
-                'custom2' => 'custom2',
-                'custom3' => 'custom3',
-                'custom4' => 'custom4',
-                'custom5' => 'custom5',
-                'custom6' => 'custom6',
-                'custom7' => 'custom7',
-            ) as $enkey => $ourkey)
+            foreach ($this->map as $enkey => $ourkey)
                 if (isset($ref[$ourkey]) && $ref[$ourkey])
                     $out .= "<$enkey><style face=\"normal\" font=\"default\" size=\"100%\">" . $this->_export($ref[$ourkey]) . "</style></$enkey>";
 
@@ -145,10 +156,11 @@ class EndNoteXmlDriver extends AbstractDriver
         return (string) $xmlnode[0][0];
     }
 
-    function SetContents($xml) {
+    function import($xml) {
         $dom = new \SimpleXMLElement($xml);
+        $imported = [];
         foreach ($dom->records->record as $record) {
-            $ref = array(
+            $ref = array( // new Reference
                 'authors' => array(),
                 'urls' => array(),
                 'title' => '',
@@ -159,70 +171,41 @@ class EndNoteXmlDriver extends AbstractDriver
             foreach ($record->xpath('urls/related-urls/url/style/text()') as $url) 
                 $ref['urls'][] = $this->_GetText($url);
 
-            if ($find = $record->xpath("titles/title/style/text()"))
-                $ref['title'] = $this->_GetText($find);
-            if ($find = $record->xpath("titles/secondary-title/style/text()"))
-                $ref['title-secondary'] = $this->_GetText($find);
-            if ($find = $record->xpath("titles/short-title/style/text()"))
-                $ref['title-short'] = $this->_GetText($find);
-            if ($find = $record->xpath("periodical/full-title/style/text()"))
-                $ref['periodical-title'] = $this->_GetText($find);
-            if ($find = $record->xpath("dates/year/style/text()"))
-                $ref['year'] = $this->_GetText($find);
             if ($find = $record->xpath("dates/pub-dates/date/style/text()"))
-                $ref['date'] = $this->parent->toEpoc($this->_GetText($find), $ref);
+                $ref['date'] = RefLib::toEpoc($this->_GetText($find), $ref);
 
             // Simple key=>vals
-            foreach (array(
-                'access-date' => 'access-date',
-                'auth-address' => 'address',
-                'pages' => 'pages',
-                'volume' => 'volume',
-                'number' => 'number',
-                'section' => 'section',
-                'abstract' => 'abstract',
-                'isbn' => 'isbn',
-                'notes' => 'notes',
-                'research-notes' => 'research-notes',
-                'label' => 'label',
-                'caption' => 'caption',
-                'language' => 'language',
-                'custom1' => 'custom1',
-                'custom2' => 'custom2',
-                'custom3' => 'custom3',
-                'custom4' => 'custom4',
-                'custom5' => 'custom5',
-                'custom6' => 'custom6',
-                'custom7' => 'custom7',
-            ) as $enkey => $ourkey) {
+            foreach ($this->map as $enkey => $ourkey) {
                 if (! $find = $record->xpath("$enkey/style/text()") )
                     continue;
                 $ref[$ourkey] = $this->_GetText($find);
             }
-            $ref = $this->parent->applyFixes($ref);
+            $ref = RefLib::applyFixes($ref);
 
-            if (!$this->parent->refId) { // Use indexed array
-                $this->parent->refs[] = $ref;
-            } elseif (is_string($this->parent->refId)) { // Use assoc array
-                if ($this->parent->refId == 'rec-number') {
-                    // Stupidly convert the XML object into an array - wish there were some easier way to do this but xPath doesnt seem to watch to match 'rec-number/text()'
-                    $recArr = (array) $record;
-                    $recno = (int) $recArr['rec-number'];
-                    if (!$recno) {
-                        trigger_error('No record number to associate reference to');
-                        $this->parent->refs[$ref[$this->parent->refId]] = $ref;
-                    } else {
-                        $this->parent->refs[$recno] = $ref;
-                    }
-                } elseif (!isset($ref[$this->parent->refId])) {
-                    trigger_error("No ID found in reference to use as key");
-                } else {
-                    $this->parent->refs[$ref[$this->parent->refId]] = $ref;
-                }
-            }
+            $imported[] = $ref;
+            //TODO: Solve refId problem later. Make a property of the Reference
+            // if (!$this->parent->refId) { // Use indexed array
+            //     $this->parent->refs[] = $ref;
+            // } elseif (is_string($this->parent->refId)) { // Use assoc array
+            //     if ($this->parent->refId == 'rec-number') {
+            //         // Stupidly convert the XML object into an array - wish there were some easier way to do this but xPath doesnt seem to watch to match 'rec-number/text()'
+            //         $recArr = (array) $record;
+            //         $recno = (int) $recArr['rec-number'];
+            //         if (!$recno) {
+            //             trigger_error('No record number to associate reference to');
+            //             $this->parent->refs[$ref[$this->parent->refId]] = $ref;
+            //         } else {
+            //             $this->parent->refs[$recno] = $ref;
+            //         }
+            //     } elseif (!isset($ref[$this->parent->refId])) {
+            //         trigger_error("No ID found in reference to use as key");
+            //     } else {
+            //         $this->parent->refs[$ref[$this->parent->refId]] = $ref;
+            //     }
+            // }
         }
-        if ($this->parent->refId == 'rec-number') // Resort by keys so that everything is in order
-            ksort($this->parent->refs);
+        // if ($this->parent->refId == 'rec-number') // Resort by keys so that everything is in order
+        //     ksort($this->parent->refs);
+        return $imported;
     }
-
 }

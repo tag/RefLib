@@ -2,9 +2,8 @@
 
 use RefLib\RefLib as RefLib;
 
-$dir = dirname(__FILE__);
-require_once("$dir/../reflib.php");
+require ("bootstrap.php");
 
 $rl = new RefLib();
-$rl->SetContentFile("$dir/data/endnote.xml");
-echo (count($rl->refs) == 1988 ? 'PASS' : 'FAIL') . " - 1998 references read from EndNote XML file\n";
+$rl->importFile(__DIR__.'/data/endnote.xml');
+echo (count($rl->refs) == 1988 ? 'PASS' : 'FAIL') . ' - '.count($rl->refs)."/1998 references read from EndNote XML file\n";

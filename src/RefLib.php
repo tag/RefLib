@@ -56,16 +56,17 @@ class RefLib
     public $refId = null;
 
     /**
-    * The currently active driver for this instance
-    * @var string
+    * The current active/default driver for this instance
+    * @var AbstractDriver
     */
-    public $driver = null;
+    public $defaultDriver = null;
 
     /**
     * Whenever a fix is applied (See $applyFix*) any data that gets rewritten should be stored in $ref[]['RAW']
     * @type bool
+    * @todo this really shouldn't be static, but the methods need to be decoupled from the drivers, so it is for now
     */
-    public $fixesBackup = false;
+    public static $fixesBackup = false;
 
     /**
     * Enables the auto-fixing of reference.pages to be absolute
@@ -73,8 +74,9 @@ class RefLib
     * e.g. pp520-34 becomes 520-534
     * @see FixPages()
     * @var bool
+    * @todo this really shouldn't be static, but the methods need to be decoupled from the drivers, so it is for now
     */
-    public $applyFixPages = true;
+    public static $applyFixPages = true;
 
     /**
     * What functions should be transparently mapped onto the driver
@@ -83,9 +85,19 @@ class RefLib
     */
     protected $_driverMaps = array(
         'getfilename' => 'GetFilename',
-        'getcontents' => 'GetContents',
-        'setcontents' => 'SetContents',
+//        'getcontents' => 'GetContents',
+//        'setcontents' => 'SetContents',
         'escape' => 'Escape',
+    );
+
+    /**
+     * Key refers to file type.
+     */
+    protected $registeredDrivers = array(
+        'ris'=>['class'=>'RisDriver',        'description'=>'RIS'],
+        'xml'=>['class'=>'EndNoteXmlDriver', 'description'=>'EndNote XML'],
+        'enw'=>['class'=>'EnwDriver',        'description'=>'EndNote ENW'],
+        'csv'=>['class'=>'CsvDriver',        'description'=>'CSV']
     );
 
     /**
@@ -94,32 +106,71 @@ class RefLib
     public function __call($method, $params)
     {
         if (isset($this->_driverMaps[strtolower($method)])) {
-            return call_user_func_array(array($this->driver, $method), $params);
+            return call_user_func_array(array($this->defaultDriver, $method), $params);
         }
         trigger_error("Invalid method: $method");
     }
     // }}}
 
+    /**
+     * @return string
+     **/
+    public function export () {
+        if (isset($this->defaultDriver)) {
+            return $this->defaultDriver->export($this->refs);
+        }
+        trigger_error("No active driver");
+    }
+
     // Driver functions {{{
     /**
+     * Registers drivers for use with RefLib.
+     * @param string Class name of driver being registered
+     * @return void
+     **/
+    public function registerDriver($className)
+    {
+        //TODO: Test $className typeof Drivers\AbstractDriver
+        $type = $className::getExtensions();
+        foreach ($type as $val) {
+            array_unshift(
+                $this->$registeredDrivers,
+                ['class'=>$className, 'type'=>$val]
+            );
+        }
+    }
+
+    /**
     * Load a specific driver
-    * @param string $driver The name of the driver to load. This should correspond to the driver name in drivers/*.php
-    * @return bool TRUE if the driver is valid OR already loaded, FALSE if the driver cannot be loaded
+    * @param AbstractDriver|string $driver The extension or fully qualified name of the driver to load,
+    *                       as found in $regsiteredDrivers.
+    * @return AbstractDriver|null
+    * @deprecated
     */
     public function loadDriver($driver)
     {
-        $driver = strtolower($driver);
-        if ($driver == $this->driver) { // Already loaded this driver
-            return true;
+        // Deprecated way of diong this, but check anyway.
+        // Preferred method is to set $this->defaultDriver directly
+        if ($driver instanceof AbstractDriver) {
+            $this->defaultDriver = $driver;
+            return $this->defaultDriver;
         }
-        if (!file_exists($file = dirname(__FILE__) . "/drivers/$driver.php")) {
-            return;
+
+        // If $driver is an extension
+        $temp = $this->identifyDriver($driver);
+
+        if ($return) {
+            $this->defaultDriver = $temp;
+            return $this->defaultDriver;
         }
-        require_once($file);
-        $driverName = "\RefLib\RefLib_" . ucfirst($driver);
-        $this->driver = new $driverName();
-        $this->driver->parent = $this;
-        return true;
+
+        // If $driver if a class name
+        if (class_exists($driver) && is_subclass_of($driver, '\RefLib\Drivers\AbstractDriver')) {
+            $this->defaultDriver = new $driver();
+            return $this->defaultDriver;
+        }
+
+        return null;
     }
 
     /**
@@ -127,47 +178,53 @@ class RefLib
     */
     public function getDrivers()
     {
-        return array(
-            'endnotexml' => 'EndNote XML',
-            'ris' => 'RIS',
-            'csv' => 'CSV - Excel Export',
-        );
+        return $this->registeredDrivers;
     }
 
     /**
     * Tries to identify the correct driver to use based on an array of data
-    * @param array $types,... An array of known data about the file. 
-    *              Usually this is the file extension (if any) and mime type
-    * @return string Either a suitable driver name or boolean false
+    * @param array $types,... An array of known data about the file.
+    *              Usually this is the file extension (if any), mime type, and possibly, file name
+    * @return AbstractDriver Either a suitable driver instance or null
     */
     public function identifyDriver()
     {
         $types = func_get_args();
+
         foreach ($types as $type) {
-            switch ($type) {
-                case 'xml':
-                case 'text/xml':
-                    return 'endnotexml';
-                case 'ris':
-                    return 'ris';
-                case 'csv':
-                case 'text/csv':
-                    return 'csv';
-                default: // General file
-                    if (is_file($type)) {
-                        if (function_exists('mime_content_type')
-                            && $mime = mime_content_type($type) ) {
-                            if ($type == 'text/csv') {
-                                return 'csv';
-                            }
-                        }
-                        // Still no idea - try internal tests
-                        $preview = $this->slurpPeek($type);
-                        if (preg_match('/^TY  - /ms', $preview)) {
-                            return 'ris';
-                        }
-                    }
+            // If $driver is an extension
+            if (isset($this->registeredDrivers[strtolower($type)])) {
+                $class = __NAMESPACE__.'\\Drivers\\'.$this->registeredDrivers[strtolower($type)]['class'];
+                return new $class();
             }
+
+            if (is_file($type)) {
+                return $this->identifyDriverFromFile($type);
+            }
+
+            if ('text/' == substr($type, 0, 5) && strlen($type) > 5) {
+                return $this->identifyDriver(subtr($type, 5));
+            }
+        }
+        return null;
+    }
+
+    /**
+    * Tries to identify the correct driver to use based on an array of data
+    * @param string $fileName File name
+    * @return AbstractDriver Either a suitable driver instance or null
+    */
+    public function identifyDriverFromFile($fileName) {
+        if (function_exists('mime_content_type')
+            && $mime = mime_content_type($fileName) ) {
+            if ($mime == 'text/csv') {
+                return $this->identifyDriver('csv');
+            }
+        }
+        // Still no idea - try internal tests
+        $preview = $this->slurpPeek($fileName);
+        if (preg_match('/^TY  - /ms', $preview)) {
+            return $this->identifyDriver('ris');
         }
     }
 
@@ -208,26 +265,31 @@ class RefLib
     /**
     * Add a reference to the $refs array
     * This function also expands simple strings into arrays (suported: author => authors, url => urls)
-    * @param $ref array The array to add to the stack
+    * @param array|Reference A reference or array of References to add to the library
     */
-    public function add($ref)
+    public function add($refList)
     {
+        if (isset($refList['title'])) { //poor detection of whether we received a single ref or an array of refs
+            $refList = [$refList];
+        }
         // Expand singular -> plurals
-        foreach (array(
-            'author' => 'authors',
-            'url' => 'urls',
-        ) as $single => $plural) {
-            if (isset($ref[$single])) {
-                $ref[$plural] = array($ref[$single]);
-                unset($ref[$single]);
+        // foreach (array(
+        //     'author' => 'authors',
+        //     'url' => 'urls',
+        // ) as $single => $plural) {
+        //     if (isset($ref[$single])) {
+        //         $ref[$plural] = array($ref[$single]);
+        //         unset($ref[$single]);
+        //     }
+        // }
+
+        foreach ($refList as $ref) {
+            if (isset($ref['date'])) {
+                $ref['date'] = RefLib::toEpoc($ref['date']);
             }
-        }
 
-        if (isset($ref['date'])) {
-            $ref['date'] = $this->toEpoc($ref['date']);
+            $this->refs[] = $ref;
         }
-
-        $this->refs[] = $ref;
     }
     // }}}
 
@@ -266,17 +328,23 @@ class RefLib
     * Set the BLOB contents of the incomming citation library from a file
     * This function will also attempt to identify the correct driver to use (via IdentifyDriver())
     * @param string $filename The actual file path to load
-    * @param string $mime Optional mime type informaton if the filename doesnt provide 
+    * @param string $mime Optional mime type informaton if the filename doesn't provide
     *        anything helpful (such as it originating from $_FILE)
+    * @param AbstractClass $driver The driver to use. Attempts to auto-detect if none provided
     */
-    public function importFile($filename, $mime = null)
+    public function importFile($filename, $mime = null, AbstractClass $driver=null)
     {
-        if ($driver = $this->IdentifyDriver(pathinfo($filename, PATHINFO_EXTENSION), $mime, $filename)) {
-            $this->loadDriver($driver);
-            $this->driver->SetContents(file_get_contents($filename));
-        } else {
-            trigger_error("Unknown driver type for filename '$filename'");
+        if(!$driver) {
+            $driver = $this->identifyDriver(pathinfo($filename, PATHINFO_EXTENSION), $mime, $filename);
         }
+
+        if ($driver) { //TODO: change to import
+            $this->defaultDriver = $driver;
+            $this->add($this->defaultDriver->import(file_get_contents($filename)));
+            return;
+        }
+
+        trigger_error("Unknown driver type for filename '$filename'");
     }
     // }}}
 
@@ -284,14 +352,16 @@ class RefLib
     /**
     * Apply all enabled features
     * This is really just one big switch that enables the $this->Fix* methods
+    * Calls self::applyFixes, which doesn't have the check.
+    * @todo // TODO: Move these to AbstractDriver?
     * @param array $ref The reference to fix
     * @return array $ref The now fixed reference
     * @todo Move to parent class of drivers; utilize in all drivers
     */
-    public function applyFixes($ref)
+    public static function applyFixes($ref)
     {
-        if ($this->applyFixPages) {
-            $ref = $this->fixPages($ref);
+        if (self::$applyFixPages) {
+            $ref = self::fixPages($ref);
         }
         return $ref;
     }
@@ -304,7 +374,7 @@ class RefLib
     * @param array $ref The refernce object to fix
     * @return array $ref The fixed reference object
     */
-    public function fixPages($ref)
+    public static function fixPages($ref)
     {
         if (!isset($ref['pages'])) {// Nothing to do
             return $ref;
@@ -333,7 +403,7 @@ class RefLib
 
         $pages = $prefix . $pages;
         if ($ref['pages'] != $pages) { // Actually rewrite 'pages'
-            if ($this->fixesBackup) {
+            if (self::$fixesBackup) {
                 if (!isset($ref['RAW'])) {
                     $ref['RAW'] = array();
                 }
@@ -353,7 +423,7 @@ class RefLib
     * @param array|null $ref Optional additional reference information. This is used when the date needs more context e.g. 'Aug'
     * @return int An epoc value
     */
-    public function toEpoc($date, $ref = null)
+    public static function toEpoc($date, $ref = null)
     {
         if (preg_match('!^[0-9]{10,}$!', $date)) { // Unix time stamp
             return $date;
@@ -400,31 +470,6 @@ class RefLib
         }  // Entire date format
         return date('Y/m/d', $epoc);
     }
-
-    /**
-    * Attempts to understand the divider between author fields and returns back the field in '$author1$outseperator$author2' format
-    * @param string $authors The incomming author field to process
-    * @param array|string $seperators An array of seperators to try, if none specified a series of internal seperators is used, if this is a string only that seperator will be used and no other
-    * @param string $outseperator The output seperator to use
-    * @return string The supporte author field
-    */
-    public function joinAuthors($authors, $seperators = null, $outseperator = ' AND ')
-    {
-        if (!$seperators) {
-            $seperators = array(', ', '; ', ' AND ');
-        }
-
-        foreach ((array) $seperators as $seperator) {
-            $bits = explode($seperator, $authors);
-            if (count($bits) > 1) {
-                return implode($outseperator, $bits);
-            }
-        }
-
-        return $authors;
-    }
-    // }}}
-
 
     /**
     * --- BACKWARD COMPATABILITY ALIASES ---

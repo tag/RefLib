@@ -2,7 +2,7 @@
 
 use RefLib\RefLib as RefLib;
 
-require_once(dirname(__FILE__) . "/../reflib.php");
+require ("bootstrap.php");
 
 $e = new RefLib();
 foreach (array(

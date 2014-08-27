@@ -86,9 +86,9 @@ class RisDriver extends AbstractDriver
         return "$salt.ris";
     }
 
-    function GetContents() {
+    function export($refArray) {
         $out = '';
-        foreach ($this->parent->refs as $refraw) {
+        foreach ($refArray as $refraw) {
             $ref = $refraw;
             $out .= "TY  - " . (isset($ref['type']) ? strtoupper($ref['type']) : 'ELEC') . "\n";
             foreach ($this->_mapHashArray as $k => $v)
@@ -117,7 +117,8 @@ class RisDriver extends AbstractDriver
         return $out;
     }
 
-    function SetContents($blob) {
+    function import($blob) {
+        $imported = [];
         if (!preg_match_all('!^TY  - (.*?)\n(.*?)^ER  -!ms', $blob, $matches, PREG_SET_ORDER))
             return;
         $recno = 0;
@@ -166,22 +167,26 @@ class RisDriver extends AbstractDriver
                     $ref['year'] = $date[1];
                 } elseif (preg_match('!([0-9]{4})/([0-9]{1,2})//!', $rawref['PY'], $date)) { // Just month
                     $ref['date'] = strtotime("{$date[1]}-{$date[2]}-01");
-                } elseif (preg_match('!([0-9]{4})/([0-9]{1,2})/([0-9]{1,2})/!', $rawref['PY'], $date)) // Full date
+                } elseif (preg_match('!([0-9]{4})/([0-9]{1,2})/([0-9]{1,2})/!', $rawref['PY'], $date)) { // Full date
                     $ref['date'] = strtotime("{$date[1]}-{$date[2]}-{$date[1]}");
-
-            // Append to $this->parent->refs {{{
-            if (!$this->parent->refId) { // Use indexed array
-                $this->parent->refs[] = $ref;
-            } elseif (is_string($this->parent->refId)) { // Use assoc array
-                if ($this->parent->refId == 'rec-number') {
-                    $this->parent->$refs[$recno] = $ref;
-                } elseif (!isset($ref[$this->parent->refId])) {
-                    trigger_error("No ID found in reference to use as key");
-                } else {
-                    $this->parent->refs[$ref[$this->parent->refId]] = $ref;
                 }
-            }
+                $imported [] = $ref;
+
+            // TODO: Take care of RefId problem
+            // Append to $this->parent->refs {{{
+            // if (!$this->parent->refId) { // Use indexed array
+            //     $this->parent->refs[] = $ref;
+            // } elseif (is_string($this->parent->refId)) { // Use assoc array
+            //     if ($this->parent->refId == 'rec-number') {
+            //         $this->parent->$refs[$recno] = $ref;
+            //     } elseif (!isset($ref[$this->parent->refId])) {
+            //         trigger_error("No ID found in reference to use as key");
+            //     } else {
+            //         $this->parent->refs[$ref[$this->parent->refId]] = $ref;
+            //     }
+            // }
             // }}}
         }
+        return $imported;
     }
 }
