@@ -24,6 +24,8 @@
 	"config": {
 	},
 	"autoload": {
-		"classmap": ["reflib.php"]
+        "psr-4": {
+            "RefLip\\": "src/"
+        }
 	}
 }
