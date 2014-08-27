@@ -8,6 +8,8 @@ IGNORE = vendor,tests
 test:
 	php -f tests/fix-date.php
 	php -f tests/endnotexml.php
+	php -f tests/csv.php
+	php -f tests/ris.php
 	
 phpcs: .check-installation
 	@echo "-------------- BEGIN phpcs ------------------"
