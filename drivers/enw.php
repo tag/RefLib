@@ -116,7 +116,7 @@ class RefLib_enw {
 	}
 
 	function SetContents($blob) {
-		if (!preg_match_all('!^%0\s+(.*?)(?:\n(?:\n|\Z))!ms', $blob, $matches, PREG_SET_ORDER)) {
+		if (!preg_match_all('!^%0\s+(.*?)(?:\n{2,}|\Z)!ms', $blob, $matches, PREG_SET_ORDER)) {
             // \Z is end of string, even in multi-line mode
 			return;
         }
