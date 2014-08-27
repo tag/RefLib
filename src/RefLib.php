@@ -115,7 +115,8 @@ class RefLib
     /**
      * @return string
      **/
-    public function export () {
+    public function export()
+    {
         if (isset($this->defaultDriver)) {
             return $this->defaultDriver->export($this->refs);
         }
@@ -134,7 +135,7 @@ class RefLib
         $type = $className::getExtensions();
         foreach ($type as $val) {
             array_unshift(
-                $this->$registeredDrivers,
+                $this->registeredDrivers,
                 ['class'=>$className, 'type'=>$val]
             );
         }
@@ -159,7 +160,7 @@ class RefLib
         // If $driver is an extension
         $temp = $this->identifyDriver($driver);
 
-        if ($return) {
+        if ($temp) {
             $this->defaultDriver = $temp;
             return $this->defaultDriver;
         }
@@ -214,7 +215,8 @@ class RefLib
     * @param string $fileName File name
     * @return AbstractDriver Either a suitable driver instance or null
     */
-    public function identifyDriverFromFile($fileName) {
+    public function identifyDriverFromFile($fileName)
+    {
         if (function_exists('mime_content_type')
             && $mime = mime_content_type($fileName) ) {
             if ($mime == 'text/csv') {
@@ -238,15 +240,15 @@ class RefLib
     */
     protected function slurpPeek($file, $lines = 10)
     {
-        $fh = fopen($file, 'r');
+        $head = fopen($file, 'r');
 
         $i = 0;
         $out = '';
-        while ($i < $lines && $line = fgets($fh)) {
+        while ($i < $lines && $line = fgets($head)) {
             $out .= $line;
         }
 
-        fclose($fh);
+        fclose($head);
         return $out;
     }
     // }}}
@@ -311,7 +313,7 @@ class RefLib
         if ($filename && $driver) {
             $this->loadDriver($driver);
         } elseif ($filename) { // $filename but no $driver - identify it from the filename
-            if (! $driver = $this->IdentifyDriver($filename)) {
+            if (! $driver = $this->identifyDriver($filename)) {
                 trigger_error("Unknown reference driver to use with filename '$filename'");
             } else {
                 $this->loadDriver($driver);
@@ -332,9 +334,9 @@ class RefLib
     *        anything helpful (such as it originating from $_FILE)
     * @param AbstractClass $driver The driver to use. Attempts to auto-detect if none provided
     */
-    public function importFile($filename, $mime = null, AbstractClass $driver=null)
+    public function importFile($filename, $mime = null, AbstractClass $driver = null)
     {
-        if(!$driver) {
+        if (!$driver) {
             $driver = $this->identifyDriver(pathinfo($filename, PATHINFO_EXTENSION), $mime, $filename);
         }
 
@@ -388,7 +390,9 @@ class RefLib
         }
 
         if (preg_match('/^([0-9]+)\s*-\s*([0-9]+)$/', $pages, $matches)) { // X-Y
-            list($junk, $begin, $end) = $matches;
+            $begin = $matches[1];
+            $end   = $matches[2];
+
             if ((int) $begin == (int) $end) { // Really just a single page
                 $pages = $begin;
             } elseif (strlen($end) < strlen($begin)) { // Relative lengths - e.g. 219-22
@@ -420,7 +424,8 @@ class RefLib
     /**
     * Converts an incomming string to an epoc value suitable for use later on
     * @param string $date The raw string to be converted to an epoc
-    * @param array|null $ref Optional additional reference information. This is used when the date needs more context e.g. 'Aug'
+    * @param array|null $ref Optional additional reference information. This is used when 
+    *        the date needs more context e.g. 'Aug'
     * @return int An epoc value
     */
     public static function toEpoc($date, $ref = null)
