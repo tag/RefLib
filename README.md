@@ -86,7 +86,7 @@ This fork breaks backward compatibility in several ways.
   | `fixesBackup`        | `::$fixesBackup`   | Static, for now |
   | `applyFixPages`      | `::$applyFixPages` | Static, for now |
 
-  Similar changes have been made to [Drivers][#Drivers]. See that section for more details.
+  Similar changes have been made to [Drivers](#Drivers). See that section for more details.
 
 3. All code now presumes a [PSR-4][PSR-4] autoloader, so both code and examples will eschew `requre` statements.
 
