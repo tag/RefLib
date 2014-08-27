@@ -7,7 +7,8 @@ namespace RefLib;
 * @author Matt Carter <m@ttcarter.com>
 * @see https://github.com/hash-bang/RefLib
 */
-class RefLib {
+class RefLib
+{
     /**
     * An indexed or hash array of references
     * Each refernce has the following keys:
@@ -38,36 +39,39 @@ class RefLib {
     *
     * @var array
     */
-    var $refs = array();
+    public $refs = array();
 
     /**
     * When using SetXML() this field will be used as the ID to refer to the reference
     * If the ID does not exist for this reference an error will be raised
     * Meta types:
     *       NULL - Use next index offset (i.e. $this->refs will be an indexed array)
-    *       rec-number - This usually corresponds to the drivers own ID (for example EndNotes own record number as a reference - only set this if you need to maintain EndNotes own record numbering against this libraries indexing), but is often just the number of the reference in the file
+    *       rec-number - This usually corresponds to the drivers own ID (for example EndNote's
+    *       own record number as a reference - only set this if you need to maintain EndNote's
+    *       own record numbering against this libraries indexing), but is often just the number
+    *       of the reference in the file
     *
     * @var string|null
     */
-    var $refId = null;
+    public $refId = null;
 
     /**
     * The currently active driver for this instance
     * @var string
     */
-    var $driver = null;
+    public $driver = null;
 
     /**
     * The currently instanced driver
     * @var string
     */
-    var $_activeDriver = null;
+    protected $_activeDriver = null;
 
     /**
     * Whenever a fix is applied (See $applyFix*) any data that gets rewritten should be stored in $ref[]['RAW']
     * @type bool
     */
-    var $fixesBackup = false;
+    public $fixesBackup = false;
 
     /**
     * Enables the auto-fixing of reference.pages to be absolute
@@ -76,19 +80,14 @@ class RefLib {
     * @see FixPages()
     * @var bool
     */
-    var $applyFixPages = true;
-
-    // Constructor & magic methods {{{
-    function __construct() {
-        // Pass
-    }
+    public $applyFixPages = true;
 
     /**
     * What functions should be transparently mapped onto the driver
     * All keys should be lower case with the values as the function name to pass onto
     * @var array
     */
-    var $_driverMaps = array(
+    protected $_driverMaps = array(
         'getfilename' => 'GetFilename',
         'getcontents' => 'GetContents',
         'setcontents' => 'SetContents',
@@ -98,9 +97,11 @@ class RefLib {
     /**
     * Magic methods - these usually map onto the driver
     */
-    function __call($method, $params) {
-        if (isset($this->_driverMaps[strtolower($method)]))
+    public function __call($method, $params)
+    {
+        if (isset($this->_driverMaps[strtolower($method)])) {
             return call_user_func_array(array($this->driver, $method), $params);
+        }
         trigger_error("Invalid method: $method");
     }
     // }}}
@@ -111,24 +112,28 @@ class RefLib {
     * @param string $driver The name of the driver to load. This should correspond to the driver name in drivers/*.php
     * @return bool TRUE if the driver is valid OR already loaded, FALSE if the driver cannot be loaded
     */
-    function LoadDriver($driver) {
+    public function LoadDriver($driver)
+    {
         $driver = strtolower($driver);
-        if ($driver == $this->_activeDriver) // Already loaded this driver
-            return TRUE;
-        if (!file_exists($file = dirname(__FILE__) . "/drivers/$driver.php"))
+        if ($driver == $this->_activeDriver) { // Already loaded this driver
+            return true;
+        }
+        if (!file_exists($file = dirname(__FILE__) . "/drivers/$driver.php")) {
             return;
+        }
         require_once($file);
         $driverName = "\RefLib\RefLib_" . ucfirst($driver);
         $this->driver = new $driverName();
         $this->driver->parent = $this;
         $this->_activeDriver = $driver;
-        return TRUE;
+        return true;
     }
 
     /**
     * Returns an array of known drivers
     */
-    function GetDrivers() {
+    public function GetDrivers()
+    {
         return array(
             'endnotexml' => 'EndNote XML',
             'ris' => 'RIS',
@@ -138,10 +143,12 @@ class RefLib {
 
     /**
     * Tries to identify the correct driver to use based on an array of data
-    * @param array $types,... An array of known data about the file. Usually this is the file extension (if any) and mime type
+    * @param array $types,... An array of known data about the file. 
+    *              Usually this is the file extension (if any) and mime type
     * @return string Either a suitable driver name or boolean false
     */
-    function IdentifyDriver() {
+    public function IdentifyDriver()
+    {
         $types = func_get_args();
         foreach ($types as $type) {
             switch ($type) {
@@ -155,14 +162,17 @@ class RefLib {
                     return 'csv';
                 default: // General file
                     if (is_file($type)) {
-                        if ( function_exists('mime_content_type') && $mime = mime_content_type($type) ) {
-                            if ($type == 'text/csv')
+                        if (function_exists('mime_content_type')
+                            && $mime = mime_content_type($type) ) {
+                            if ($type == 'text/csv') {
                                 return 'csv';
+                            }
                         }
                         // Still no idea - try internal tests
                         $preview = $this->_SlurpPeek($type);
-                        if (preg_match('/^TY  - /ms', $preview))
+                        if (preg_match('/^TY  - /ms', $preview)) {
                             return 'ris';
+                        }
                     }
             }
         }
@@ -176,13 +186,15 @@ class RefLib {
     * @return string The content lines requested
     * @access private
     */
-    function _SlurpPeek($file, $lines = 10) {
+    protected function _SlurpPeek($file, $lines = 10)
+    {
         $fh = fopen($file, 'r');
 
         $i = 0;
         $out = '';
-        while ($i < $lines && $line = fgets($fh))
+        while ($i < $lines && $line = fgets($fh)) {
             $out .= $line;
+        }
 
         fclose($fh);
         return $out;
@@ -190,7 +202,8 @@ class RefLib {
     // }}}
 
     // Adders / removers {{{
-    function Reset() {
+    public function Reset()
+    {
         $this->refs = array();
         $this->name = 'EndNote.enl';
         $this->escapeExport = true;
@@ -204,19 +217,22 @@ class RefLib {
     * This function also expands simple strings into arrays (suported: author => authors, url => urls)
     * @param $ref array The array to add to the stack
     */
-    function Add($ref) {
+    public function Add($ref)
+    {
         // Expand singular -> plurals
         foreach (array(
             'author' => 'authors',
             'url' => 'urls',
-        ) as $single => $plural)
+        ) as $single => $plural) {
             if (isset($ref[$single])) {
                 $ref[$plural] = array($ref[$single]);
                 unset($ref[$single]);
             }
-    
-        if (isset($ref['date']))
+        }
+
+        if (isset($ref['date'])) {
             $ref['date'] = $this->ToEpoc($ref['date']);
+        }
 
         $this->refs[] = $ref;
     }
@@ -226,11 +242,15 @@ class RefLib {
     /**
     * Generate an XML file and output it to the browser
     * This will force the user to save the file somewhere to be opened later by EndNote
-    * @param string $filename The default filename to save as, if unspecifed the driver default will be used. The filename will be used with IdentifyDriver() if $driver is unspecified
-    * @param string $driver The driver to use when outputting the file, if this setting is omitted the $filename will be used to compute the correct driver to use
+    * @param string $filename The default filename to save as, if unspecifed the driver
+    *         default will be used. The filename will be used with IdentifyDriver() if
+    *         $driver is unspecified
+    * @param string $driver The driver to use when outputting the file, if this setting
+    *        is omitted the $filename will be used to compute the correct driver to use
     * @return blob The raw file contents streamed directly to the browser
     */
-    function DownloadContents($filename = null, $driver = null) {
+    public function DownloadContents($filename = null, $driver = null)
+    {
         if ($filename && $driver) {
             $this->LoadDriver($driver);
         } elseif ($filename) { // $filename but no $driver - identify it from the filename
@@ -251,7 +271,8 @@ class RefLib {
     * Alias of SetContentsFile()
     * @see SetContentsFile()
     */
-    function SetContentFile($filename) {
+    public function SetContentFile($filename)
+    {
         return $this->SetContentsFile($filename);
     }
 
@@ -261,7 +282,8 @@ class RefLib {
     * @param string $filename The actual file path to load
     * @param string $mime Optional mime type informaton if the filename doesnt provide anything helpful (such as it originating from $_FILE)
     */
-    function SetContentsFile($filename, $mime = null) {
+    public function SetContentsFile($filename, $mime = null)
+    {
         if ($driver = $this->IdentifyDriver(pathinfo($filename, PATHINFO_EXTENSION), $mime, $filename)) {
             $this->LoadDriver($driver);
             $this->driver->SetContents(file_get_contents($filename));
@@ -278,7 +300,8 @@ class RefLib {
     * @param array $ref The reference to fix
     * @return array $ref The now fixed reference
     */
-    function ApplyFixes($ref) {
+    public function ApplyFixes($ref)
+    {
         if ($this->applyFixPages)
             $ref = $this->FixPages($ref);
         return $ref;
@@ -292,7 +315,8 @@ class RefLib {
     * @param array $ref The refernce object to fix
     * @return array $ref The fixed reference object
     */
-    function FixPages($ref) {
+    public function FixPages($ref)
+    {
         if (!isset($ref['pages'])) // Nothing to do
             return $ref;
 
@@ -338,20 +362,21 @@ class RefLib {
     * @param array|null $ref Optional additional reference information. This is used when the date needs more context e.g. 'Aug'
     * @return int An epoc value
     */
-    function ToEpoc($date, $ref = null) {
+    public function ToEpoc($date, $ref = null)
+    {
         if (preg_match('!^[0-9]{10,}$!', $date)) { // Unix time stamp
             return $date;
-        } else if (preg_match('!^[0-9]{4}$!', $date)) { // Just year
+        } elseif (preg_match('!^[0-9]{4}$!', $date)) { // Just year
             return strtotime("$date-01-01");
-        } else if (preg_match('!^[0-9]{4}-[0-9]{2}$!', $date)) { // Year + month
+        } elseif (preg_match('!^[0-9]{4}-[0-9]{2}$!', $date)) { // Year + month
             return strtotime("$date-01");
         } elseif ($month = array_search($date, $months = array('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')) ) {
             if ($ref && isset($ref['year'])) { // We have a year to glue it to
                 return strtotime("{$ref['year']}-{$months[$month]}-01");
             } else
                 return false; // We have the month but don't know anything else
-        } else
-            return strtotime($date);
+        }
+        return strtotime($date);
     }
 
     /**
@@ -362,18 +387,19 @@ class RefLib {
     * @param bool $empty If true blanks are still used when no data is available (e.g. no specific date or month)
     * @return date A prototype date format
     */
-    function ToDate($epoc, $seperator = '-', $empty = FALSE) {
-        if (!$epoc)
-            return FALSE;
+    public function ToDate($epoc, $seperator = '-', $empty = false)
+    {
+        if (!$epoc) {
+            return false;
+        }
 
         $day = date('d', $epoc);
         if (date('m', $epoc) == '01' && $day == '01') { // Year only format
             return date('Y', $epoc) . ($empty ? "$seperator$seperator" : '');
         } elseif ($day == '01') { // Month only format
             return date('Y/m', $epoc) . ($empty ? $seperator : '');
-        } else // Entire date format
-            return date('Y/m/d', $epoc);
-        return FALSE;
+        }  // Entire date format
+        return date('Y/m/d', $epoc);
     }
 
     /**
@@ -383,14 +409,17 @@ class RefLib {
     * @param string $outseperator The output seperator to use
     * @return string The supporte author field
     */
-    function ReJoin($authors, $seperators = null, $outseperator = ' AND ') {
-        if (!$seperators)
+    public function ReJoin($authors, $seperators = null, $outseperator = ' AND ')
+    {
+        if (!$seperators) {
             $seperators = array(', ', '; ', ' AND ');
+        }
 
         foreach ((array) $seperators as $seperator) {
             $bits = explode($seperator, $authors);
-            if (count($bits) > 1)
+            if (count($bits) > 1) {
                 return implode($outseperator, $bits);
+            }
         }
 
         return $authors;
