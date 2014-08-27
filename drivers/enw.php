@@ -111,7 +111,7 @@ class RefLib_enw {
         //             $out .= "SP  - " . $this->Escape($ref['pages']) . "\n";
         //         }
         //     }
-        //     if (isset($ref['date']) && $date = $this->parent->ToDate($ref['date'], '/', true))
+        //     if (isset($ref['date']) && $date = $this->parent->toDate($ref['date'], '/', true))
         //         $out .= "PY  - $date/\n";
         //     $out .= "ER  - \n";
         // }

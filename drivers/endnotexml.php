@@ -117,7 +117,7 @@ class RefLib_endnotexml {
 
             $out .= '<dates>';
                 $out .= '<year><style face="normal" font="default" size="100%">' . (isset($ref['year']) && $ref['year'] ? $this->_export($ref['year']) : '') . '</style></year>';
-                $out .= '<pub-dates><date><style face="normal" font="default" size="100%">' . (isset($ref['date']) && $ref['date'] ? $this->_export($this->parent->ToDate($ref['date'])) : '') . '</style></date></pub-dates>';
+                $out .= '<pub-dates><date><style face="normal" font="default" size="100%">' . (isset($ref['date']) && $ref['date'] ? $this->_export($this->parent->toDate($ref['date'])) : '') . '</style></date></pub-dates>';
             $out .= '</dates>';
 
             if (isset($ref['urls']) && $ref['urls']) {
@@ -169,7 +169,7 @@ class RefLib_endnotexml {
             if ($find = $record->xpath("dates/year/style/text()"))
                 $ref['year'] = $this->_GetText($find);
             if ($find = $record->xpath("dates/pub-dates/date/style/text()"))
-                $ref['date'] = $this->parent->ToEpoc($this->_GetText($find), $ref);
+                $ref['date'] = $this->parent->toEpoc($this->_GetText($find), $ref);
 
             // Simple key=>vals
             foreach (array(
@@ -198,7 +198,7 @@ class RefLib_endnotexml {
                     continue;
                 $ref[$ourkey] = $this->_GetText($find);
             }
-            $ref = $this->parent->ApplyFixes($ref);
+            $ref = $this->parent->applyFixes($ref);
 
             if (!$this->parent->refId) { // Use indexed array
                 $this->parent->refs[] = $ref;

@@ -24,7 +24,7 @@ foreach (array(
 	'viii108' => 'viii108',
 	'' => '',
 ) as $pages => $correct) {
-	$ref = $e->FixPages(array('pages' => $pages));
+	$ref = $e->fixPages(array('pages' => $pages));
 	$return = $ref['pages'];
 	echo ($return == $correct ? 'PASS' : 'FAIL') . " - Given [$pages], Returned [$return], Correct [$correct]\n";
 }

@@ -62,12 +62,6 @@ class RefLib
     public $driver = null;
 
     /**
-    * The currently instanced driver
-    * @var string
-    */
-    protected $_activeDriver = null;
-
-    /**
     * Whenever a fix is applied (See $applyFix*) any data that gets rewritten should be stored in $ref[]['RAW']
     * @type bool
     */
@@ -112,10 +106,10 @@ class RefLib
     * @param string $driver The name of the driver to load. This should correspond to the driver name in drivers/*.php
     * @return bool TRUE if the driver is valid OR already loaded, FALSE if the driver cannot be loaded
     */
-    public function LoadDriver($driver)
+    public function loadDriver($driver)
     {
         $driver = strtolower($driver);
-        if ($driver == $this->_activeDriver) { // Already loaded this driver
+        if ($driver == $this->driver) { // Already loaded this driver
             return true;
         }
         if (!file_exists($file = dirname(__FILE__) . "/drivers/$driver.php")) {
@@ -125,14 +119,13 @@ class RefLib
         $driverName = "\RefLib\RefLib_" . ucfirst($driver);
         $this->driver = new $driverName();
         $this->driver->parent = $this;
-        $this->_activeDriver = $driver;
         return true;
     }
 
     /**
     * Returns an array of known drivers
     */
-    public function GetDrivers()
+    public function getDrivers()
     {
         return array(
             'endnotexml' => 'EndNote XML',
@@ -147,7 +140,7 @@ class RefLib
     *              Usually this is the file extension (if any) and mime type
     * @return string Either a suitable driver name or boolean false
     */
-    public function IdentifyDriver()
+    public function identifyDriver()
     {
         $types = func_get_args();
         foreach ($types as $type) {
@@ -169,7 +162,7 @@ class RefLib
                             }
                         }
                         // Still no idea - try internal tests
-                        $preview = $this->_SlurpPeek($type);
+                        $preview = $this->slurpPeek($type);
                         if (preg_match('/^TY  - /ms', $preview)) {
                             return 'ris';
                         }
@@ -184,9 +177,9 @@ class RefLib
     * @param string $file The file to open
     * @param int $lines The number of lines to read
     * @return string The content lines requested
-    * @access private
+    * @access protected
     */
-    protected function _SlurpPeek($file, $lines = 10)
+    protected function slurpPeek($file, $lines = 10)
     {
         $fh = fopen($file, 'r');
 
@@ -202,7 +195,7 @@ class RefLib
     // }}}
 
     // Adders / removers {{{
-    public function Reset()
+    public function reset()
     {
         $this->refs = array();
         $this->name = 'EndNote.enl';
@@ -217,7 +210,7 @@ class RefLib
     * This function also expands simple strings into arrays (suported: author => authors, url => urls)
     * @param $ref array The array to add to the stack
     */
-    public function Add($ref)
+    public function add($ref)
     {
         // Expand singular -> plurals
         foreach (array(
@@ -231,7 +224,7 @@ class RefLib
         }
 
         if (isset($ref['date'])) {
-            $ref['date'] = $this->ToEpoc($ref['date']);
+            $ref['date'] = $this->toEpoc($ref['date']);
         }
 
         $this->refs[] = $ref;
@@ -248,16 +241,18 @@ class RefLib
     * @param string $driver The driver to use when outputting the file, if this setting
     *        is omitted the $filename will be used to compute the correct driver to use
     * @return blob The raw file contents streamed directly to the browser
+    * @deprecated Output should be handled by a driver. HTTP headers should be handled 
+    *         by framework, but may be assisted by driver.
     */
-    public function DownloadContents($filename = null, $driver = null)
+    public function downloadContents($filename = null, $driver = null)
     {
         if ($filename && $driver) {
-            $this->LoadDriver($driver);
+            $this->loadDriver($driver);
         } elseif ($filename) { // $filename but no $driver - identify it from the filename
             if (! $driver = $this->IdentifyDriver($filename)) {
                 trigger_error("Unknown reference driver to use with filename '$filename'");
             } else {
-                $this->LoadDriver($driver);
+                $this->loadDriver($driver);
             }
         } else {
             $filename = $this->driver->GetFilename();
@@ -268,24 +263,16 @@ class RefLib
     }
 
     /**
-    * Alias of SetContentsFile()
-    * @see SetContentsFile()
-    */
-    public function SetContentFile($filename)
-    {
-        return $this->SetContentsFile($filename);
-    }
-
-    /**
     * Set the BLOB contents of the incomming citation library from a file
     * This function will also attempt to identify the correct driver to use (via IdentifyDriver())
     * @param string $filename The actual file path to load
-    * @param string $mime Optional mime type informaton if the filename doesnt provide anything helpful (such as it originating from $_FILE)
+    * @param string $mime Optional mime type informaton if the filename doesnt provide 
+    *        anything helpful (such as it originating from $_FILE)
     */
-    public function SetContentsFile($filename, $mime = null)
+    public function importFile($filename, $mime = null)
     {
         if ($driver = $this->IdentifyDriver(pathinfo($filename, PATHINFO_EXTENSION), $mime, $filename)) {
-            $this->LoadDriver($driver);
+            $this->loadDriver($driver);
             $this->driver->SetContents(file_get_contents($filename));
         } else {
             trigger_error("Unknown driver type for filename '$filename'");
@@ -299,11 +286,13 @@ class RefLib
     * This is really just one big switch that enables the $this->Fix* methods
     * @param array $ref The reference to fix
     * @return array $ref The now fixed reference
+    * @todo Move to parent class of drivers; utilize in all drivers
     */
-    public function ApplyFixes($ref)
+    public function applyFixes($ref)
     {
-        if ($this->applyFixPages)
-            $ref = $this->FixPages($ref);
+        if ($this->applyFixPages) {
+            $ref = $this->fixPages($ref);
+        }
         return $ref;
     }
 
@@ -315,10 +304,11 @@ class RefLib
     * @param array $ref The refernce object to fix
     * @return array $ref The fixed reference object
     */
-    public function FixPages($ref)
+    public function fixPages($ref)
     {
-        if (!isset($ref['pages'])) // Nothing to do
+        if (!isset($ref['pages'])) {// Nothing to do
             return $ref;
+        }
 
         $prefix = '';
         $pages = $ref['pages'];
@@ -344,8 +334,9 @@ class RefLib
         $pages = $prefix . $pages;
         if ($ref['pages'] != $pages) { // Actually rewrite 'pages'
             if ($this->fixesBackup) {
-                if (!isset($ref['RAW']))
+                if (!isset($ref['RAW'])) {
                     $ref['RAW'] = array();
+                }
                 $ref['RAW']['pages'] = $ref['pages'];
             }
             $ref['pages'] = $pages;
@@ -362,7 +353,7 @@ class RefLib
     * @param array|null $ref Optional additional reference information. This is used when the date needs more context e.g. 'Aug'
     * @return int An epoc value
     */
-    public function ToEpoc($date, $ref = null)
+    public function toEpoc($date, $ref = null)
     {
         if (preg_match('!^[0-9]{10,}$!', $date)) { // Unix time stamp
             return $date;
@@ -370,24 +361,32 @@ class RefLib
             return strtotime("$date-01-01");
         } elseif (preg_match('!^[0-9]{4}-[0-9]{2}$!', $date)) { // Year + month
             return strtotime("$date-01");
-        } elseif ($month = array_search($date, $months = array('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')) ) {
+        } elseif ($month = array_search(
+            $date,
+            $months = array(
+                'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+            )
+        )) {
             if ($ref && isset($ref['year'])) { // We have a year to glue it to
                 return strtotime("{$ref['year']}-{$months[$month]}-01");
-            } else
-                return false; // We have the month but don't know anything else
+            }
+            return false; // We have the month but don't know anything else
         }
         return strtotime($date);
     }
 
     /**
     * Returns the date in big-endian (year first) format
-    * If the month or day are '01' they are omitted to form the smallest date string possible e.g. '2014-01-01' =~ '2014'
+    * If the month or day are '01' they are omitted to form the smallest date string
+    * possible e.g. '2014-01-01' =~ '2014'
     * @param int $epoc The epoc to return as a string
     * @param string $seperator The seperator to use
-    * @param bool $empty If true blanks are still used when no data is available (e.g. no specific date or month)
+    * @param bool $empty If true blanks are still used when no data is available
+    *        (e.g. no specific date or month)
     * @return date A prototype date format
     */
-    public function ToDate($epoc, $seperator = '-', $empty = false)
+    public function toDate($epoc, $seperator = '-', $empty = false)
     {
         if (!$epoc) {
             return false;
@@ -409,7 +408,7 @@ class RefLib
     * @param string $outseperator The output seperator to use
     * @return string The supporte author field
     */
-    public function ReJoin($authors, $seperators = null, $outseperator = ' AND ')
+    public function joinAuthors($authors, $seperators = null, $outseperator = ' AND ')
     {
         if (!$seperators) {
             $seperators = array(', ', '; ', ' AND ');
@@ -425,4 +424,13 @@ class RefLib
         return $authors;
     }
     // }}}
+
+
+    /**
+    * --- BACKWARD COMPATABILITY ALIASES ---
+    **/
+
+    // @codingStandardsIgnoreStart
+
+    // @codingStandardsIgnoreEnd
 }
