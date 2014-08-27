@@ -51,21 +51,21 @@ Backward Compatibility Breaks
 =============================
 This fork breaks backward compatibility in several ways.
 
-1. All classes have been namespaced with the `RefLib` namespace, as part of implementing [PSR-1][PSR-1] standards. Examples in the docs have been changed too. In the future, driver class names will be changed, and possibly sub-namespaced.
+1. All classes have been namespaced with the `RefLib` namespace, as part of implementing [PSR-1][PSR-1] and [PSR-4][PSR-4] standards. Examples in the docs have been changed too. In the future, driver class names will be changed, and possibly sub-namespaced.
 
-2. method and property names may have had case and/or visibilty changes consistent with PSR-2. All object methods now begin with a lower case. Private attributes/methods were marked as protected instead. Protected methods are no longer prefixed with an underscore.
+2. method and property names may have had case and/or visibilty changes consistent with [PSR-2][PSR-2]. All object methods now begin with a lower case. Private attributes/methods were marked as protected instead. Protected methods are no longer prefixed with an underscore.
 
-```php
-// EXAMPLE
+   ```php
+   // EXAMPLE
 
-// Previously:
-$lib->Add($ref);
-$lib->_SlurpPeek($file, $lines);
+   // Previously:
+   $lib->Add($ref);
+   $lib->_SlurpPeek($file, $lines);
 
-// Now:
-$lib->add($ref);
-$lib->slurpPeek($file, $lines);  // Error: Protected
-```
+   // Now:
+   $lib->add($ref);
+   $lib->slurpPeek($file, $lines);  // Error: Protected
+   ```
 
   In the process, some method names have been changed to enhance clarity. `Get*` and `Set*` method names have been replaces with `export*` and `import*` names, respectively. For example, instead of `RefLib#SetFileContents()`, now use `RefLib#importFile()`. A full map of name changes is shown in the table below:
 
