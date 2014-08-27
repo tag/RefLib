@@ -1,3 +1,5 @@
+*See the [dev branch of tag/RefLib](https://github.com/tag/RefLib/tree/dev) for PSR improvments (under development).*
+
 RefLib
 ======
 PHP module for managing a variety of citation reference libraries.
