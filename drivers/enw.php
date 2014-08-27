@@ -5,21 +5,21 @@
 * NOTE: This driver for RefLib has only limited support for ENW fields
 */
 class RefLib_enw {
-	var $driverName = 'ENW';
+    var $driverName = 'ENW';
 
-	/**
-	* The parent instance of the RefLib class
-	* @var class
-	*/
-	var $parent;
+    /**
+    * The parent instance of the RefLib class
+    * @var class
+    */
+    var $parent;
 
-	/**
-	* Simple key/val mappings
-	* Each key is the RIS format name, each Val is the RifLib version
-	* Place preferencial keys for output at the top if multiple incomming keys match
-	* @var array
-	*/
-	var $_mapHash = array(
+    /**
+    * Simple key/val mappings
+    * Each key is the RIS format name, each Val is the RifLib version
+    * Place preferencial keys for output at the top if multiple incomming keys match
+    * @var array
+    */
+    var $_mapHash = array(
         /*
         %0 Journal Article %T Trust and the unintended effects of behavior control in virtual teams %A Piccoli, Gabriele %A Ives, Blake %J Mis Quarterly %P 365-395 %@ 0276-7783 %D 2003
         // %I  // Publisher
@@ -47,43 +47,43 @@ class RefLib_enw {
         '%X' => 'abstract',
         '%D' => 'year',
         '%P' => 'pages'
-	);
+    );
 
-	/**
-	* Similar to $_mapHash but this time each value is an array
-	* Place preferencial keys for output at the top if multiple incomming keys match
-	* @var array
-	*/
-	var $_mapHashArray = array(
-		// Prefered keys
-		'%A' => 'authors'
+    /**
+    * Similar to $_mapHash but this time each value is an array
+    * Place preferencial keys for output at the top if multiple incomming keys match
+    * @var array
+    */
+    var $_mapHashArray = array(
+        // Prefered keys
+        '%A' => 'authors'
         // 'DO' => 'urls',
 
-		// Regular keys
+        // Regular keys
         // 'UR' => 'urls',
-	);
+    );
 
-	/**
-	* Escpe a string in an EndNote compatible way
-	* @param string $string The string to be escaped
-	* @return string The escaped string
-	*/
-	function Escape($string) {
-		return strtr($string, array(
-			"\r" => '\n',
-		));
-	}
+    /**
+    * Escpe a string in an EndNote compatible way
+    * @param string $string The string to be escaped
+    * @return string The escaped string
+    */
+    function Escape($string) {
+        return strtr($string, array(
+            "\r" => '\n',
+        ));
+    }
 
-	/**
-	* Computes the default filename if given a $salt
-	* @param string $salt The basic part of the filename to use
-	* @return string The filename including extension to use as default
-	*/
-	function GetFilename($salt = 'ENW') {
-		return "$salt.enw";
-	}
+    /**
+    * Computes the default filename if given a $salt
+    * @param string $salt The basic part of the filename to use
+    * @return string The filename including extension to use as default
+    */
+    function GetFilename($salt = 'ENW') {
+        return "$salt.enw";
+    }
 
-	function GetContents() {
+    function GetContents() {
         throw new Exception('Not Impelemented');
         // $out = '';
         // foreach ($this->parent->refs as $refraw) {
@@ -113,22 +113,22 @@ class RefLib_enw {
         //     $out .= "ER  - \n";
         // }
         // return $out;
-	}
+    }
 
-	function SetContents($blob) {
-		if (!preg_match_all('!^%0\s+(.*?)(?:\n{2,}|\Z)!ms', $blob, $matches, PREG_SET_ORDER)) {
+    function SetContents($blob) {
+        if (!preg_match_all('!^%0\s+(.*?)(?:\n{2,}|\Z)!ms', $blob, $matches, PREG_SET_ORDER)) {
             // \Z is end of string, even in multi-line mode
-			return;
+            return;
         }
 
-		$recno = 0;
-		foreach ($matches as $match) {
-			$recno++;
-			$ref = array('type' => strtolower($match[1]));
+        $recno = 0;
+        foreach ($matches as $match) {
+            $recno++;
+            $ref = array('type' => strtolower($match[1]));
 
-			$rawref = array();
-			preg_match_all('!^(%[\S])\s+(.*)$!m', $match[0], $rawrefextracted, PREG_SET_ORDER);
-			foreach ($rawrefextracted as $rawrefbit) {
+            $rawref = array();
+            preg_match_all('!^(%[\S])\s+(.*)$!m', $match[0], $rawrefextracted, PREG_SET_ORDER);
+            foreach ($rawrefextracted as $rawrefbit) {
                 // key/val mappings
                 if (isset($this->_mapHash[$rawrefbit[1]])) {
                     $ref[$this->_mapHash[$rawrefbit[1]]] = trim($rawrefbit[2]);
@@ -150,17 +150,17 @@ class RefLib_enw {
                 } else {
                     $rawref[$rawrefbit[1]] = trim($rawrefbit[2]);
                 }
-			}
+            }
 
-			// }}}
-			// Pages {{{
+            // }}}
+            // Pages {{{
             // if (isset($rawref['SP']) && isset($rawref['EP'])) {
             //     $ref['pages'] = "{$rawref['SP']}-{$rawref['EP']}";
             // } elseif (isset($rawref['SP']))
             //     $ref['pages'] = $rawref['SP'];
-			// }}}
+            // }}}
 
-			// Dates {{{
+            // Dates {{{
             // if (isset($rawref['%D']))
             //     if (substr($rawref['PY'], 0, 10) == 'undefined/') {
             //         // Pass
@@ -171,19 +171,19 @@ class RefLib_enw {
             //     } elseif (preg_match('!([0-9]{4})/([0-9]{1,2})/([0-9]{1,2})/!', $rawref['PY'], $date)) // Full date
             //         $ref['date'] = strtotime("{$date[1]}-{$date[2]}-{$date[1]}");
 
-			// Append to $this->parent->refs {{{
-			if (!$this->parent->refId) { // Use indexed array
-				$this->parent->refs[] = $ref;
-			} elseif (is_string($this->parent->refId)) { // Use assoc array
-				if ($this->parent->refId == 'rec-number') {
-					$this->parent->$refs[$recno] = $ref;
-				} elseif (!isset($ref[$this->parent->refId])) {
-					trigger_error("No ID found in reference to use as key");
-				} else {
-					$this->parent->refs[$ref[$this->parent->refId]] = $ref;
-				}
-			}
-			// }}}
-		}
-	}
+            // Append to $this->parent->refs {{{
+            if (!$this->parent->refId) { // Use indexed array
+                $this->parent->refs[] = $ref;
+            } elseif (is_string($this->parent->refId)) { // Use assoc array
+                if ($this->parent->refId == 'rec-number') {
+                    $this->parent->$refs[$recno] = $ref;
+                } elseif (!isset($ref[$this->parent->refId])) {
+                    trigger_error("No ID found in reference to use as key");
+                } else {
+                    $this->parent->refs[$ref[$this->parent->refId]] = $ref;
+                }
+            }
+            // }}}
+        }
+    }
 }
