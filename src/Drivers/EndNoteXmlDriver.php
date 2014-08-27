@@ -1,11 +1,12 @@
 <?php
 
-namespace RefLib;
+namespace RefLib\Drivers;
 
 /**
 * EndNote XML driver for RefLib
 */
-class RefLib_endnotexml {
+class EndNoteXmlDriver extends AbstractDriver
+{
     var $driverName = 'EndNoteXML';
 
     /**

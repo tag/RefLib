@@ -1,13 +1,14 @@
 <?php
 
-namespace RefLib;
+namespace RefLib\Drivers;
 
 /**
 * RIS driver for RefLib
 *
 * NOTE: This driver for RefLib has only limited support for RIS fields, usually because the RIS fields don't map onto the standard RegLib ones correctly
 */
-class RefLib_ris {
+class RisDriver extends AbstractDriver
+{
     var $driverName = 'RIS';
 
     /**

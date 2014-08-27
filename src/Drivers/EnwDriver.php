@@ -1,13 +1,14 @@
 <?php
 
-namespace RefLib;
+namespace RefLib\Drivers;
 
 /**
 * RIS driver for RefLib
 *
 * NOTE: This driver for RefLib has only limited support for ENW fields
 */
-class RefLib_enw {
+class EnwDriver extends AbstractDriver
+{
     var $driverName = 'ENW';
 
     /**
