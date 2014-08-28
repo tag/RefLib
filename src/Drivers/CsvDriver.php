@@ -1,6 +1,7 @@
 <?php
 
 namespace RefLib\Drivers;
+use RefLib;
 
 /**
 * CSV driver for RefLib
@@ -105,7 +106,7 @@ class CsvDriver extends AbstractDriver
                         $this->columns[] = null;
                 }
             } else { // Have got column setup - process data line
-                $ref = array();
+                $ref = new RefLib\Reference();
                 foreach ($this->columns as $offset => $field)
                     if ($field)
                         $ref[$field] = $csv[$offset];

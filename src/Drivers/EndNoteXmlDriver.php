@@ -1,7 +1,7 @@
 <?php
 
 namespace RefLib\Drivers;
-use RefLib\RefLib as RefLib;
+use RefLib;
 
 /**
 * EndNote XML driver for RefLib
@@ -160,11 +160,13 @@ class EndNoteXmlDriver extends AbstractDriver
         $dom = new \SimpleXMLElement($xml);
         $imported = [];
         foreach ($dom->records->record as $record) {
-            $ref = array( // new Reference
-                'authors' => array(),
-                'urls' => array(),
-                'title' => '',
-            );
+            $ref = new RefLib\Reference();
+
+            // $ref = array( // new Reference
+//                 'authors' => array(),
+//                 'urls' => array(),
+//                 'title' => '',
+//             );
             foreach ($record->xpath('contributors/authors/author/style/text()') as $authors) 
                 $ref['authors'][] = $this->_GetText($authors);
 
@@ -172,7 +174,7 @@ class EndNoteXmlDriver extends AbstractDriver
                 $ref['urls'][] = $this->_GetText($url);
 
             if ($find = $record->xpath("dates/pub-dates/date/style/text()"))
-                $ref['date'] = RefLib::toEpoc($this->_GetText($find), $ref);
+                $ref['date'] = RefLib\RefLib::toEpoc($this->_GetText($find), $ref);
 
             // Simple key=>vals
             foreach ($this->map as $enkey => $ourkey) {
@@ -180,7 +182,7 @@ class EndNoteXmlDriver extends AbstractDriver
                     continue;
                 $ref[$ourkey] = $this->_GetText($find);
             }
-            $ref = RefLib::applyFixes($ref);
+            $ref = RefLib\RefLib::applyFixes($ref);
 
             $imported[] = $ref;
             //TODO: Solve refId problem later. Make a property of the Reference

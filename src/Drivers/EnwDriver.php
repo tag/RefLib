@@ -1,6 +1,7 @@
 <?php
 
 namespace RefLib\Drivers;
+use RefLib;
 
 /**
 * RIS driver for RefLib
@@ -87,7 +88,7 @@ class EnwDriver extends AbstractDriver
         return "$salt.enw";
     }
 
-    function GetContents() {
+    function export() {
         throw new Exception('Not Impelemented');
         // $out = '';
         // foreach ($this->parent->refs as $refraw) {
@@ -119,7 +120,7 @@ class EnwDriver extends AbstractDriver
         // return $out;
     }
 
-    function SetContents($blob) {
+    function import($blob) {
         if (!preg_match_all('!^%0\s+(.*?)(?:\n{2,}|\Z)!ms', $blob, $matches, PREG_SET_ORDER)) {
             // \Z is end of string, even in multi-line mode
             return;
@@ -128,7 +129,8 @@ class EnwDriver extends AbstractDriver
         $recno = 0;
         foreach ($matches as $match) {
             $recno++;
-            $ref = array('type' => strtolower($match[1]));
+            $ref = new RefLib\Reference();
+            $ref['type'] = strtolower($match[1]);
 
             $rawref = array();
             preg_match_all('!^(%[\S])\s+(.*)$!m', $match[0], $rawrefextracted, PREG_SET_ORDER);

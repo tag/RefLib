@@ -1,6 +1,7 @@
 <?php
 
 namespace RefLib\Drivers;
+use RefLib;
 
 /**
 * RIS driver for RefLib
@@ -88,19 +89,19 @@ class RisDriver extends AbstractDriver
 
     function export($refArray) {
         $out = '';
-        foreach ($refArray as $refraw) {
-            $ref = $refraw;
+        foreach ($refArray as $ref) {
             $out .= "TY  - " . (isset($ref['type']) ? strtoupper($ref['type']) : 'ELEC') . "\n";
             foreach ($this->_mapHashArray as $k => $v)
                 if (isset($ref[$v])) {
                     foreach ((array) $ref[$v] as $val)
                         $out .= "$k  - " . $this->Escape($val) . "\n";
-                    unset($ref[$v]); // Remove it from the reference copy so we dont process it twice
+                    //TODO: this is unsetting actual, rather than a copy.
+//                    unset($ref[$v]); // Remove it from the reference copy so we dont process it twice
                 }
             foreach ($this->_mapHash as $k => $v)
                 if (isset($ref[$v])) {
                     $out .= "$k  - " . $this->Escape($ref[$v]) . "\n";
-                    unset($ref[$v]); // Remove it from the reference copy so we dont process it twice
+ //                   unset($ref[$v]); // Remove it from the reference copy so we dont process it twice
                 }
             if (isset($ref['pages'])) {
                 if (preg_match('!(.*?)-(.*)$!', $ref['pages'], $pages)) {
@@ -110,8 +111,9 @@ class RisDriver extends AbstractDriver
                     $out .= "SP  - " . $this->Escape($ref['pages']) . "\n";
                 }
             }
-            if (isset($ref['date']) && $date = $this->parent->toDate($ref['date'], '/', true))
+            if (isset($ref['date']) && $date = $this->parent->toDate($ref['date'], '/', true)) {
                 $out .= "PY  - $date/\n";
+            }
             $out .= "ER  - \n";
         }
         return $out;
@@ -119,12 +121,15 @@ class RisDriver extends AbstractDriver
 
     function import($blob) {
         $imported = [];
-        if (!preg_match_all('!^TY  - (.*?)\n(.*?)^ER  -!ms', $blob, $matches, PREG_SET_ORDER))
+        if (!preg_match_all('!^TY  - (.*?)\n(.*?)^ER  -!ms', $blob, $matches, PREG_SET_ORDER)) {
             return;
+        }
+
         $recno = 0;
         foreach ($matches as $match) {
             $recno++;
-            $ref = array('type' => strtolower($match[1]));
+            $ref = new RefLib\Reference();
+            $ref['type'] = strtolower($match[1]);
 
             $rawref = array();
             preg_match_all('!^([A-Z0-9]{2})  - (.*)$!m', $match[2], $rawrefextracted, PREG_SET_ORDER);
@@ -156,11 +161,12 @@ class RisDriver extends AbstractDriver
             // Pages {{{
             if (isset($rawref['SP']) && isset($rawref['EP'])) {
                 $ref['pages'] = "{$rawref['SP']}-{$rawref['EP']}";
-            } elseif (isset($rawref['SP']))
+            } elseif (isset($rawref['SP'])) {
                 $ref['pages'] = $rawref['SP'];
+            }
             // }}}
             // Dates {{{
-            if (isset($rawref['PY']))
+            if (isset($rawref['PY'])) {
                 if (substr($rawref['PY'], 0, 10) == 'undefined/') {
                     // Pass
                 } elseif (preg_match('!([0-9]{4})///!', $rawref['PY'], $date)) { // Just year
@@ -170,7 +176,8 @@ class RisDriver extends AbstractDriver
                 } elseif (preg_match('!([0-9]{4})/([0-9]{1,2})/([0-9]{1,2})/!', $rawref['PY'], $date)) { // Full date
                     $ref['date'] = strtotime("{$date[1]}-{$date[2]}-{$date[1]}");
                 }
-                $imported [] = $ref;
+            }
+            $imported [] = $ref;
 
             // TODO: Take care of RefId problem
             // Append to $this->parent->refs {{{
