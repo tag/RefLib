@@ -60,7 +60,7 @@ class RefLib
     * @var array
     */
     protected $_driverMaps = array(
-        'getfilename' => 'GetFilename',
+        'getfilename' => 'getFileName',
 //        'getcontents' => 'GetContents',
 //        'setcontents' => 'SetContents',
         'escape' => 'Escape',
@@ -295,7 +295,7 @@ class RefLib
                 $this->loadDriver($driver);
             }
         } else {
-            $filename = $this->driver->GetFilename();
+            $filename = $this->driver->getFileName();
         }
         header('Content-type: text/plain');
         header('Content-Disposition: attachment; filename="' . $filename . '"');

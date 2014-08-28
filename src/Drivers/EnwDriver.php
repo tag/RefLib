@@ -84,40 +84,12 @@ class EnwDriver extends AbstractDriver
     * @param string $salt The basic part of the filename to use
     * @return string The filename including extension to use as default
     */
-    function GetFilename($salt = 'ENW') {
+    function getFileName($salt = 'ENW') {
         return "$salt.enw";
     }
 
     function export() {
         throw new Exception('Not Impelemented');
-        // $out = '';
-        // foreach ($this->parent->refs as $refraw) {
-        //     $ref = $refraw;
-        //     $out .= "TY  - " . (isset($ref['type']) ? strtoupper($ref['type']) : 'ELEC') . "\n";
-        //     foreach ($this->_mapHashArray as $k => $v)
-        //         if (isset($ref[$v])) {
-        //             foreach ((array) $ref[$v] as $val)
-        //                 $out .= "$k  - " . $this->Escape($val) . "\n";
-        //             unset($ref[$v]); // Remove it from the reference copy so we dont process it twice
-        //         }
-        //     foreach ($this->_mapHash as $k => $v)
-        //         if (isset($ref[$v])) {
-        //             $out .= "$k  - " . $this->Escape($ref[$v]) . "\n";
-        //             unset($ref[$v]); // Remove it from the reference copy so we dont process it twice
-        //         }
-        //     if (isset($ref['pages'])) {
-        //         if (preg_match('!(.*?)-(.*)$!', $ref['pages'], $pages)) {
-        //             $out .= "SP  - {$pages[1]}\n";
-        //             $out .= "EP  - {$pages[2]}\n";
-        //         } else {
-        //             $out .= "SP  - " . $this->Escape($ref['pages']) . "\n";
-        //         }
-        //     }
-        //     if (isset($ref['date']) && $date = $this->parent->toDate($ref['date'], '/', true))
-        //         $out .= "PY  - $date/\n";
-        //     $out .= "ER  - \n";
-        // }
-        // return $out;
     }
 
     function import($blob) {

@@ -10,13 +10,7 @@ use RefLib;
 */
 class RisDriver extends AbstractDriver
 {
-    var $driverName = 'RIS';
-
-    /**
-    * The parent instance of the RefLib class
-    * @var class
-    */
-    var $parent;
+    public $driverName = 'RIS';  //TODO: Investigate whether needed, how used
 
     /**
     * Simple key/val mappings
@@ -24,7 +18,7 @@ class RisDriver extends AbstractDriver
     * Place preferencial keys for output at the top if multiple incomming keys match
     * @var array
     */
-    var $_mapHash = array(
+    protected $mapPrefer = array(
         'CA' => 'caption',
         'J2' => 'title-secondary',
         'C1' => 'custom1',
@@ -42,37 +36,48 @@ class RisDriver extends AbstractDriver
         'SN' => 'isbn',
         'ST' => 'title-short',
         'T1' => 'title', // The spec is publidshed in san-serif; T[ONE] is correct
-        'TI' => 'title', // The spec is publidshed in san-serif
         'JO' => 'periodical-title', // Journal
-        'T2' => 'periodical-title', // Journal
         'VL' => 'volume',
         'AB' => 'abstract',
         'PY' => 'year',
-        'Y1' => 'year', // Not a field in the spec, but used by Google Scholar
         'IS' => 'number' // Issue #
     );
 
+    protected $mapAlias = array(
+        'TI' => 'title', // The spec is publidshed in san-serif, so some outlets use TI instead of T1
+        'T2' => 'periodical-title', // Journal
+        'Y1' => 'year', // Not a field in the spec, but used by Google Scholar
+    );
+
     /**
-    * Similar to $_mapHash but this time each value is an array
+    * Similar to $map but this time each value is an array
     * Place preferencial keys for output at the top if multiple incomming keys match
     * @var array
     */
-    var $_mapHashArray = array(
-        // Prefered keys
+    protected $mapArrayPrefer = array(
         'AU' => 'authors',
-        'A1' => 'authors',
-        'DO' => 'urls',
-
-        // Regular keys
         'UR' => 'urls',
     );
+
+    protected $mapArrayAlias = array(
+        'DO' => 'urls', // Aliased, because DOs are URLs, but URLs are not DO
+        'A1' => 'authors'
+    );
+
+    protected $map;      // Joined in constructor
+    protected $mapArray; // Joined in constructor
+
+    public function __construct() {
+        $this->map      = array_merge($this->mapAlias, $this->mapPrefer);
+        $this->mapArray = array_merge($this->mapArrayAlias, $this->mapArrayPrefer);
+    }
 
     /**
     * Escpe a string in an EndNote compatible way
     * @param string $string The string to be escaped
     * @return string The escaped string
     */
-    function Escape($string) {
+    protected function escape($string) {
         return strtr($string, array(
             "\r" => '\n',
         ));
@@ -83,7 +88,7 @@ class RisDriver extends AbstractDriver
     * @param string $salt The basic part of the filename to use
     * @return string The filename including extension to use as default
     */
-    function GetFilename($salt = 'RIS') {
+    function getFileName($salt = 'RIS') {
         return "$salt.ris";
     }
 
@@ -91,24 +96,26 @@ class RisDriver extends AbstractDriver
         $out = '';
         foreach ($refArray as $ref) {
             $out .= "TY  - " . (isset($ref['type']) ? strtoupper($ref['type']) : 'ELEC') . "\n";
-            foreach ($this->_mapHashArray as $k => $v)
+            foreach ($this->mapArrayPrefer as $k => $v) {
                 if (isset($ref[$v])) {
                     foreach ((array) $ref[$v] as $val)
-                        $out .= "$k  - " . $this->Escape($val) . "\n";
+                        $out .= "$k  - " . $this->escape($val) . "\n";
                     //TODO: this is unsetting actual, rather than a copy.
 //                    unset($ref[$v]); // Remove it from the reference copy so we dont process it twice
                 }
-            foreach ($this->_mapHash as $k => $v)
+            }
+            foreach ($this->mapPrefer as $k => $v) {
                 if (isset($ref[$v])) {
-                    $out .= "$k  - " . $this->Escape($ref[$v]) . "\n";
+                    $out .= "$k  - " . $this->escape($ref[$v]) . "\n";
  //                   unset($ref[$v]); // Remove it from the reference copy so we dont process it twice
                 }
+            }
             if (isset($ref['pages'])) {
                 if (preg_match('!(.*?)-(.*)$!', $ref['pages'], $pages)) {
                     $out .= "SP  - {$pages[1]}\n";
                     $out .= "EP  - {$pages[2]}\n";
                 } else {
-                    $out .= "SP  - " . $this->Escape($ref['pages']) . "\n";
+                    $out .= "SP  - " . $this->escape($ref['pages']) . "\n";
                 }
             }
             if (isset($ref['date']) && $date = $this->parent->toDate($ref['date'], '/', true)) {
@@ -135,14 +142,14 @@ class RisDriver extends AbstractDriver
             preg_match_all('!^([A-Z0-9]{2})  - (.*)$!m', $match[2], $rawrefextracted, PREG_SET_ORDER);
             foreach ($rawrefextracted as $rawrefbit) {
                 // key/val mappings
-                if (isset($this->_mapHash[$rawrefbit[1]])) {
-                    $ref[$this->_mapHash[$rawrefbit[1]]] = trim($rawrefbit[2]);
+                if (isset($this->map[$rawrefbit[1]])) {
+                    $ref[$this->map[$rawrefbit[1]]] = trim($rawrefbit[2]);
                     continue;
                 }
 
                 // key/val(array) mappings
-                if (isset($this->_mapHashArray[$rawrefbit[1]])) {
-                    $ref[$this->_mapHashArray[$rawrefbit[1]]][] = trim($rawrefbit[2]);
+                if (isset($this->mapArray[$rawrefbit[1]])) {
+                    $ref[$this->mapArray[$rawrefbit[1]]][] = trim($rawrefbit[2]);
                     continue;
                 }
 

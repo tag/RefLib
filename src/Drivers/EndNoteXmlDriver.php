@@ -11,18 +11,6 @@ class EndNoteXmlDriver extends AbstractDriver
     var $driverName = 'EndNoteXML';
 
     /**
-    * The parent instance of the RefLib class
-    * @var class
-    */
-    var $parent;
-
-    /**
-    * Whether to apply htmlentitites() encoding during an export operation
-    * @var bool
-    */
-    var $escapeExport = true;
-
-    /**
     * The internal name to call the file
     * As far as I am aware this does not actually serve a purpose but EndNote refuses to import the file unless its specified
     * @var string
@@ -32,7 +20,7 @@ class EndNoteXmlDriver extends AbstractDriver
     /**
      *  @var array Maps (EndNoteXmlKey)=>(RefLibKey)
      */
-    protected $map = array(
+    protected $map = array( // TODO: Some modification needed for use in export
         'titles/title' => 'title',
         'titles/secondary-title' => 'title-secondary',
         'titles/short-title'     => 'title-short',
@@ -65,23 +53,8 @@ class EndNoteXmlDriver extends AbstractDriver
     * @param string $string The string to be escaped
     * @return string The escaped string
     */
-    function Escape($string) {
-        return strtr($string, array(
-            "\r" => '&#13;',
-            '&' => '&amp;',
-            '<' => '&lt;',
-            '>' => '&gt;',
-        ));
-    }
-
-    /**
-    * Internal function to optionally escape strings based on $escapeExport
-    * @param string $string The string to return, optionally escaped
-    * @return string The optionally escaped string
-    * @see $escapeExport
-    */
-    function _export($string) {
-        return $this->escapeExport ? $this->Escape($string) : $string;
+    protected function escape($string) {
+        return htmlentities($string, ENT_XML1, 'UTF-8');
     }
 
     /**
@@ -89,53 +62,80 @@ class EndNoteXmlDriver extends AbstractDriver
     * @param string $salt The basic part of the filename to use
     * @return string The filename including extension to use as default
     */
-    function GetFilename($salt = 'EndNote') {
-        return "$salt.xml";
+    function getFileName($salt = 'EndNote') {
+        return "{$salt}.xml";
     }
 
     /**
     * Return the raw XML of the $refs array
     * @see $refs
     */
-    function GetContents() {
+    function export(Array $refs) {
+        if ($refs instanceof Reference) {
+            $refs = [$refs];
+        }
+
         $out = '<' . '?xml version="1.0" encoding="UTF-8"?' . '><xml><records>';
         $number = 0;
-        foreach ($this->parent->refs as $id => $ref) {
+        foreach ($refs as $id => $ref) {
             $out .= '<record>';
-            $out .= '<database name="' . $this->endNoteFile . '" path="C:\\' . $this->endNoteFile . '">' . $this->_export($this->endNoteFile) . '</database>';
+            $out .= '<database name="' . $this->endNoteFile . '" path="C:\\' . $this->endNoteFile . '">' . $this->escape($this->endNoteFile) . '</database>';
             $out .= '<source-app name="EndNote" version="16.0">EndNote</source-app>';
             $out .= '<rec-number>' . $number . '</rec-number>';
             $out .= '<foreign-keys><key app="EN" db-id="s55prpsswfsepue0xz25pxai2p909xtzszzv">' . $number . '</key></foreign-keys>';
             $out .= '<ref-type name="Journal Article">17</ref-type>';
 
             $out .= '<contributors><authors>';
-                foreach ($ref['authors'] as $author)
-                    $out .= '<author><style face="normal" font="default" size="100%">' . $this->_export($author) . '</style></author>';
+            foreach ($ref['authors'] as $author) {
+                $out .= '<author><style face="normal" font="default" size="100%">';
+                $out .= $this->escape($author) . '</style></author>';
+            }
             $out .= '</authors></contributors>';
 
             $out .= '<titles>';
-                $out .= '<title><style face="normal" font="default" size="100%">' . $this->_export($ref['title']) . '</style></title>';
-                $out .= '<secondary-title><style face="normal" font="default" size="100%">' . (isset($ref['title-secondary']) && $ref['title-secondary'] ? $this->_export($ref['title-secondary']) : '') . '</style></secondary-title>';
-                if (isset($ref['title-short']) && $ref['title-short'])
-                    $out .= '<short-title><style face="normal" font="default" size="100%">' . $this->_export($ref['title-short']) . '</style></short-title>';
+            $out .= '<title><style face="normal" font="default" size="100%">' . $this->escape($ref['title']) . '</style></title>';
+            $out .= '<secondary-title><style face="normal" font="default" size="100%">';
+            if (isset($ref['title-secondary']) && $ref['title-secondary']) {
+                $out .= $this->escape($ref['title-secondary']);
+            }
+            $out .= '</style></secondary-title>';
+            if (isset($ref['title-short']) && $ref['title-short']) {
+                $out .= '<short-title><style face="normal" font="default" size="100%">';
+                $out .= $this->escape($ref['title-short']) . '</style></short-title>';
+            }
             $out .= '</titles>';
 
-                $out .= '<periodical><full-title><style face="normal" font="default" size="100%">' . (isset($ref['periodical-title']) && $ref['periodical-title'] ? $this->_export($ref['periodical-title']) : '') . '</style></full-title></periodical>';
+            $out .= '<periodical><full-title><style face="normal" font="default" size="100%">';
+            if (isset($ref['periodical-title']) && $ref['periodical-title']) {
+                $out .= $this->escape($ref['periodical-title']);
+            }
+            $out .= '</style></full-title></periodical>';
 
             // Simple key values
-            foreach ($this->map as $enkey => $ourkey)
-                if (isset($ref[$ourkey]) && $ref[$ourkey])
-                    $out .= "<$enkey><style face=\"normal\" font=\"default\" size=\"100%\">" . $this->_export($ref[$ourkey]) . "</style></$enkey>";
-
+            foreach ($this->map as $enkey => $ourkey) {
+                if (isset($ref[$ourkey]) && $ref[$ourkey]) {
+                    $out .= "<$enkey><style face=\"normal\" font=\"default\" size=\"100%\">";
+                    $out .= $this->escape($ref[$ourkey]) . "</style></$enkey>";
+                }
+            }
             $out .= '<dates>';
-                $out .= '<year><style face="normal" font="default" size="100%">' . (isset($ref['year']) && $ref['year'] ? $this->_export($ref['year']) : '') . '</style></year>';
-                $out .= '<pub-dates><date><style face="normal" font="default" size="100%">' . (isset($ref['date']) && $ref['date'] ? $this->_export($this->parent->toDate($ref['date'])) : '') . '</style></date></pub-dates>';
+            $out .= '<year><style face="normal" font="default" size="100%">';
+            if (isset($ref['year']) && $ref['year']) {
+                $out .= $this->escape($ref['year']);
+            }
+            $out .= '</style></year>';
+            $out .= '<pub-dates><date><style face="normal" font="default" size="100%">';
+            if (isset($ref['date']) && $ref['date']) {
+                $out .= $this->escape($this->parent->toDate($ref['date']));
+            }
+            $out .= '</style></date></pub-dates>';
             $out .= '</dates>';
 
             if (isset($ref['urls']) && $ref['urls']) {
                 $out .= '<urls><related-urls>';
-                    foreach ((array) $ref['urls'] as $url)
-                        $out .= '<url><style face="normal" font="default" size="100%">' . $this->_export($url) . '</style></url>';
+                foreach ((array) $ref['urls'] as $url) {
+                    $out .= '<url><style face="normal" font="default" size="100%">' . $this->escape($url) . '</style></url>';
+                }
                 $out .= '</related-urls></urls>';
             }
 
@@ -150,9 +150,9 @@ class EndNoteXmlDriver extends AbstractDriver
     * Return the text content of a SimpleXMLElement
     * @param SimpleXMLELement $xmlnode The node to return the content of
     * @return string The content of $xmlnode
-    * @access private
+    * @access protected
     */
-    function _GetText($xmlnode) {
+    protected function getText($xmlnode) {
         return (string) $xmlnode[0][0];
     }
 
@@ -162,25 +162,20 @@ class EndNoteXmlDriver extends AbstractDriver
         foreach ($dom->records->record as $record) {
             $ref = new RefLib\Reference();
 
-            // $ref = array( // new Reference
-//                 'authors' => array(),
-//                 'urls' => array(),
-//                 'title' => '',
-//             );
             foreach ($record->xpath('contributors/authors/author/style/text()') as $authors) 
-                $ref['authors'][] = $this->_GetText($authors);
+                $ref['authors'][] = $this->getText($authors);
 
             foreach ($record->xpath('urls/related-urls/url/style/text()') as $url) 
-                $ref['urls'][] = $this->_GetText($url);
+                $ref['urls'][] = $this->getText($url);
 
             if ($find = $record->xpath("dates/pub-dates/date/style/text()"))
-                $ref['date'] = RefLib\RefLib::toEpoc($this->_GetText($find), $ref);
+                $ref['date'] = RefLib\RefLib::toEpoc($this->getText($find), $ref);
 
             // Simple key=>vals
             foreach ($this->map as $enkey => $ourkey) {
                 if (! $find = $record->xpath("$enkey/style/text()") )
                     continue;
-                $ref[$ourkey] = $this->_GetText($find);
+                $ref[$ourkey] = $this->getText($find);
             }
             $ref = RefLib\RefLib::applyFixes($ref);
 
