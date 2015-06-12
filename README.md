@@ -1,6 +1,8 @@
 Backward Compatibility and Roadmap
-=============================
+==================================
 This fork [breaks backward compatibility](#backward-compatibility-breaks) in several ways, detailed below. Further breaks are forthcoming, iminently, including driver renaming, and decoupling of driver and library.
+
+*See the [dev-psr branch of tag/RefLib](https://github.com/tag/RefLib/tree/dev-psr) for PSR improvments (under development).*
 
 RefLib
 ======

@@ -51,6 +51,61 @@ class EndNoteXmlDriver extends AbstractDriver
     );
 
     /**
+    * Reference type lookup table
+    * Key is the human EndNote string, value is the EndNote int value
+    * @var array
+    */
+    var $refTypes = array(
+        'Aggregated Database' => 55,
+        'Ancient Text' => 51,
+        'Artwork' => 2,
+        'Audiovisual Material' => 3,
+        'Bill' => 4,
+        'Blog' => 56,
+        'Book' => 6,
+        'Book Section' => 5,
+        'Case' => 7,
+        'Catalog' => 8,
+        'Chart or Table' => 38,
+        'Classical Work' => 49,
+        'Computer Program' => 9,
+        'Conference Paper' => 47,
+        'Conference Proceedings' => 10,
+        'Dataset.' => 59,
+        'Dictionary' => 52,
+        'Edited Book' => 28,
+        'Electronic Article' => 43,
+        'Electronic Book Section' => 60,
+        'Encyclopedia' => 53,
+        'Equation' => 39,
+        'Figure' => 37,
+        'Film or Broadcast' => 21,
+        'Generic' => 13,
+        'Government Document' => 46,
+        'Grant' => 54,
+        'Hearing' => 14,
+        'Journal Article' => 17,
+        'Legal Rule or Regulation' => 50,
+        'Magazine Article' => 19,
+        'Manuscript' => 36,
+        'Map' => 20,
+        'Music' => 61,
+        'Newspaper Article' => 23,
+        'Online Database' => 45,
+        'Online Multimedia' => 48,
+        'Pamphlet' => 24,
+        'Patent' => 25,
+        'Personal Communication' => 26,
+        'Report' => 27,
+        'Serial' => 57,
+        'Standard' => 58,
+        'Statute' => 31,
+        'Thesis' => 32,
+        'Unpublished Work' => 34,
+        'Web Page' => 12,
+    );
+
+    /**
     * Escpe a string in an EndNote compatible way
     * @param string $string The string to be escaped
     * @return string The escaped string
@@ -90,7 +145,12 @@ class EndNoteXmlDriver extends AbstractDriver
             $out .= '<rec-number>' . $number . '</rec-number>';
             $out .= '<foreign-keys><key app="EN" db-id="s55prpsswfsepue0xz25pxai2p909xtzszzv">'
                     . $number . '</key></foreign-keys>';
-            $out .= '<ref-type name="Journal Article">17</ref-type>';
+            
+            if ($ref['type'] && isset($this->refTypes[$ref['type']]) ) {
+                $out .= "<ref-type name=\"{$ref['type']}\">{$this->refTypes[$ref['type']]}</ref-type>";
+            } else {
+                $out .= '<ref-type name="Journal Article">17</ref-type>';
+            }
 
             $out .= '<contributors><authors>';
 
