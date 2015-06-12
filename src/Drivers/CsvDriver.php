@@ -100,7 +100,6 @@ class CsvDriver extends AbstractDriver
                     foreach ($this->columnDefs as $field => $possibles) {
                         foreach ($possibles as $possible) {
                             if (preg_match("/$possible/i", $bit)) {
-                                $found = $field;
                                 $this->columns[] = $field;
                                 continue 3;
                             }
