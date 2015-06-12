@@ -16,13 +16,17 @@ abstract class AbstractDriver
 
 
     /**
-    * Attempts to understand the divider between author fields and returns back the field in '$author1$outseperator$author2' format
+    * Attempts to understand the divider between author fields and returns back 
+    * the field in "{$author1}{$outseperator}{$author2}" format
     * @param string $authors The incomming author field to process
-    * @param array|string $seperators An array of seperators to try, if none specified a series of internal seperators is used, if this is a string only that seperator will be used and no other
+    * @param array|string $seperators An array of seperators to try, if none specified 
+    *        a series of internal seperators is used; if a string, only that 
+    *        seperator will be used
     * @param string $outseperator The output seperator to use
     * @return string The supporte author field
     * @todo //TODO: split into implode, explode functions?
     */
+
     public static function joinAuthors($authors, $seperators = null, $outseperator = ' AND ')
     {
         if (!$seperators) {

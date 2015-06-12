@@ -1,6 +1,7 @@
 <?php
 
 namespace RefLib\Drivers;
+
 use RefLib;
 
 /**
@@ -8,27 +9,27 @@ use RefLib;
 */
 class CsvDriver extends AbstractDriver
 {
-    var $driverName = 'CSV';
+    public $driverName = 'CSV';
 
     /**
     * The parent instance of the RefLib class
     * @var class
     */
-    var $parent;
+    public $parent;
 
     /**
     * Map of parent columns to CSV fields
     * Key is the CSV offset number, value is the field to export
     * @var array
     */
-    var $columns;
+    public $columns;
 
     /**
     * Attempt to match parent columns via these regexp arrays
     * All regexps are run with the /i flag for case-insensitive
     * @var array
     */
-    var $columnDefs = array(
+    public $columnDefs = array(
         'authors' => array('^authors?$', '^writers?$', '^names?$', 'byline$'),
         'address' => array('^address$'),
         'contact-name' => array('^contact.name$'),
@@ -61,11 +62,12 @@ class CsvDriver extends AbstractDriver
     );
 
     /**
-    * Escpe a string in an EndNote compatible way
+    * Escpe a string in an CSV compatible way
     * @param string $string The string to be escaped
     * @return string The escaped string
     */
-    function Escape($string) {
+    protected function escape($string)
+    {
         return strtr($string, array(
             '"' => '\"',
         ));
@@ -76,43 +78,47 @@ class CsvDriver extends AbstractDriver
     * @param string $salt The basic part of the filename to use
     * @return string The filename including extension to use as default
     */
-    function getFileName($salt = 'CSV') {
+    public function getFileName($salt = 'CSV')
+    {
         return "$salt.csv";
     }
 
-    function GetContents() {
-        throw new Exception(); // Not implemented
-    }
-
-    function import($blob) {
+    public function import($blob)
+    {
         $recno = 0;
         $imported = [];
 
         foreach (explode("\n", $blob) as $line) {
-            if (!$line)
+            if (!$line) {
                 continue;
+            }
             $csv = str_getcsv($line);
             $recno++;
 
             if (!$this->columns) { // Not seen any column information yet
                 foreach ($csv as $bit) {
-                    foreach ($this->columnDefs as $field => $possibles)
-                        foreach ($possibles as $possible)
+                    foreach ($this->columnDefs as $field => $possibles) {
+                        foreach ($possibles as $possible) {
                             if (preg_match("/$possible/i", $bit)) {
                                 $found = $field;
                                 $this->columns[] = $field;
                                 continue 3;
                             }
-                        $this->columns[] = null;
+                        }
+                        $this->columns[] = null; //TAG: Possible bug? This was indented, but not wrapped in braces
+                    }
                 }
             } else { // Have got column setup - process data line
                 $ref = new RefLib\Reference();
-                foreach ($this->columns as $offset => $field)
-                    if ($field)
+                foreach ($this->columns as $offset => $field) {
+                    if ($field) {
                         $ref[$field] = $csv[$offset];
+                    }
+                }
 
-                if (isset($ref['authors']))
+                if (isset($ref['authors'])) {
                     $ref['authors'] = self::joinAuthors($ref['authors']);
+                }
 
                 $imported[] = $ref;
                 // TODO: Deal with refId later

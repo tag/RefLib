@@ -1,6 +1,7 @@
 <?php
 
 namespace RefLib\Drivers;
+
 use RefLib;
 
 /**
@@ -10,13 +11,13 @@ use RefLib;
 */
 class EnwDriver extends AbstractDriver
 {
-    var $driverName = 'ENW';
+    public $driverName = 'ENW';
 
     /**
     * The parent instance of the RefLib class
     * @var class
     */
-    var $parent;
+    public $parent;
 
     /**
     * Simple key/val mappings
@@ -24,9 +25,8 @@ class EnwDriver extends AbstractDriver
     * Place preferencial keys for output at the top if multiple incomming keys match
     * @var array
     */
-    var $_mapHash = array(
+    protected $mapHash = array(
         /*
-        %0 Journal Article %T Trust and the unintended effects of behavior control in virtual teams %A Piccoli, Gabriele %A Ives, Blake %J Mis Quarterly %P 365-395 %@ 0276-7783 %D 2003
         // %I  // Publisher
         */
         // 'CA' => 'caption',
@@ -55,11 +55,11 @@ class EnwDriver extends AbstractDriver
     );
 
     /**
-    * Similar to $_mapHash but this time each value is an array
+    * Similar to $mapHash but this time each value is an array
     * Place preferencial keys for output at the top if multiple incomming keys match
     * @var array
     */
-    var $_mapHashArray = array(
+    protected $mapHashArray = array(
         // Prefered keys
         '%A' => 'authors'
         // 'DO' => 'urls',
@@ -73,7 +73,8 @@ class EnwDriver extends AbstractDriver
     * @param string $string The string to be escaped
     * @return string The escaped string
     */
-    function Escape($string) {
+    protected function escape($string)
+    {
         return strtr($string, array(
             "\r" => '\n',
         ));
@@ -84,15 +85,18 @@ class EnwDriver extends AbstractDriver
     * @param string $salt The basic part of the filename to use
     * @return string The filename including extension to use as default
     */
-    function getFileName($salt = 'ENW') {
+    public function getFileName($salt = 'ENW')
+    {
         return "$salt.enw";
     }
 
-    function export() {
+    public function export()
+    {
         throw new Exception('Not Impelemented');
     }
 
-    function import($blob) {
+    public function import($blob)
+    {
         if (!preg_match_all('!^%0\s+(.*?)(?:\n{2,}|\Z)!ms', $blob, $matches, PREG_SET_ORDER)) {
             // \Z is end of string, even in multi-line mode
             return;
@@ -108,14 +112,14 @@ class EnwDriver extends AbstractDriver
             preg_match_all('!^(%[\S])\s+(.*)$!m', $match[0], $rawrefextracted, PREG_SET_ORDER);
             foreach ($rawrefextracted as $rawrefbit) {
                 // key/val mappings
-                if (isset($this->_mapHash[$rawrefbit[1]])) {
-                    $ref[$this->_mapHash[$rawrefbit[1]]] = trim($rawrefbit[2]);
+                if (isset($this->mapHash[$rawrefbit[1]])) {
+                    $ref[$this->mapHash[$rawrefbit[1]]] = trim($rawrefbit[2]);
                     continue;
                 }
 
                 // key/val(array) mappings
-                if (isset($this->_mapHashArray[$rawrefbit[1]])) {
-                    $ref[$this->_mapHashArray[$rawrefbit[1]]][] = trim($rawrefbit[2]);
+                if (isset($this->mapHashArray[$rawrefbit[1]])) {
+                    $ref[$this->mapHashArray[$rawrefbit[1]]][] = trim($rawrefbit[2]);
                     continue;
                 }
 

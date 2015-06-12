@@ -58,8 +58,9 @@ class RefLib
     * What functions should be transparently mapped onto the driver
     * All keys should be lower case with the values as the function name to pass onto
     * @var array
+    * @todo  deprecated?
     */
-    protected $_driverMaps = array(
+    protected $driverMaps = array(
         'getfilename' => 'getFileName',
 //        'getcontents' => 'GetContents',
 //        'setcontents' => 'SetContents',

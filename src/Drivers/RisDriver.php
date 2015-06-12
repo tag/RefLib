@@ -1,12 +1,14 @@
 <?php
 
 namespace RefLib\Drivers;
+
 use RefLib;
 
 /**
 * RIS driver for RefLib
 *
-* NOTE: This driver for RefLib has only limited support for RIS fields, usually because the RIS fields don't map onto the standard RegLib ones correctly
+* NOTE: This driver for RefLib has only limited support for RIS fields, usually because 
+* the RIS fields don't map onto the standard RegLib ones correctly
 */
 class RisDriver extends AbstractDriver
 {
@@ -67,7 +69,8 @@ class RisDriver extends AbstractDriver
     protected $map;      // Joined in constructor
     protected $mapArray; // Joined in constructor
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->map      = array_merge($this->mapAlias, $this->mapPrefer);
         $this->mapArray = array_merge($this->mapArrayAlias, $this->mapArrayPrefer);
     }
@@ -77,7 +80,8 @@ class RisDriver extends AbstractDriver
     * @param string $string The string to be escaped
     * @return string The escaped string
     */
-    protected function escape($string) {
+    protected function escape($string)
+    {
         return strtr($string, array(
             "\r" => '\n',
         ));
@@ -88,18 +92,21 @@ class RisDriver extends AbstractDriver
     * @param string $salt The basic part of the filename to use
     * @return string The filename including extension to use as default
     */
-    function getFileName($salt = 'RIS') {
+    public function getFileName($salt = 'RIS')
+    {
         return "$salt.ris";
     }
 
-    function export($refArray) {
+    public function export($refArray)
+    {
         $out = '';
         foreach ($refArray as $ref) {
             $out .= "TY  - " . (isset($ref['type']) ? strtoupper($ref['type']) : 'ELEC') . "\n";
             foreach ($this->mapArrayPrefer as $k => $v) {
                 if (isset($ref[$v])) {
-                    foreach ((array) $ref[$v] as $val)
+                    foreach ((array) $ref[$v] as $val) {
                         $out .= "$k  - " . $this->escape($val) . "\n";
+                    }
                     //TODO: this is unsetting actual, rather than a copy.
 //                    unset($ref[$v]); // Remove it from the reference copy so we dont process it twice
                 }
@@ -126,7 +133,8 @@ class RisDriver extends AbstractDriver
         return $out;
     }
 
-    function import($blob) {
+    public function import($blob)
+    {
         $imported = [];
         if (!preg_match_all('!^TY  - (.*?)\n(.*?)^ER  -!ms', $blob, $matches, PREG_SET_ORDER)) {
             return;
@@ -184,7 +192,7 @@ class RisDriver extends AbstractDriver
                     $ref['date'] = strtotime("{$date[1]}-{$date[2]}-{$date[1]}");
                 }
             }
-            $imported [] = $ref;
+            $imported[] = $ref;
 
             // TODO: Take care of RefId problem
             // Append to $this->parent->refs {{{

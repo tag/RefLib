@@ -1,6 +1,7 @@
 <?php
 
 namespace RefLib\Drivers;
+
 use RefLib;
 
 /**
@@ -8,14 +9,15 @@ use RefLib;
 */
 class EndNoteXmlDriver extends AbstractDriver
 {
-    var $driverName = 'EndNoteXML';
+    public $driverName = 'EndNoteXML';
 
     /**
     * The internal name to call the file
-    * As far as I am aware this does not actually serve a purpose but EndNote refuses to import the file unless its specified
+    * As far as I am aware this does not actually serve a purpose but EndNote refuses to import 
+    * the file unless it's specified
     * @var string
     */
-    var $endNoteFile = 'EndNote.enl';
+    public $endNoteFile = 'EndNote.enl';
 
     /**
      *  @var array Maps (EndNoteXmlKey)=>(RefLibKey)
@@ -53,7 +55,8 @@ class EndNoteXmlDriver extends AbstractDriver
     * @param string $string The string to be escaped
     * @return string The escaped string
     */
-    protected function escape($string) {
+    protected function escape($string)
+    {
         return htmlentities($string, ENT_XML1, 'UTF-8');
     }
 
@@ -62,7 +65,8 @@ class EndNoteXmlDriver extends AbstractDriver
     * @param string $salt The basic part of the filename to use
     * @return string The filename including extension to use as default
     */
-    function getFileName($salt = 'EndNote') {
+    public function getFileName($salt = 'EndNote')
+    {
         return "{$salt}.xml";
     }
 
@@ -70,7 +74,8 @@ class EndNoteXmlDriver extends AbstractDriver
     * Return the raw XML of the $refs array
     * @see $refs
     */
-    function export(Array $refs) {
+    public function export(Array $refs)
+    {
         if ($refs instanceof Reference) {
             $refs = [$refs];
         }
@@ -79,21 +84,26 @@ class EndNoteXmlDriver extends AbstractDriver
         $number = 0;
         foreach ($refs as $id => $ref) {
             $out .= '<record>';
-            $out .= '<database name="' . $this->endNoteFile . '" path="C:\\' . $this->endNoteFile . '">' . $this->escape($this->endNoteFile) . '</database>';
+            $out .= '<database name="' . $this->endNoteFile . '" path="C:\\'
+                    . $this->endNoteFile . '">' . $this->escape($this->endNoteFile) . '</database>';
             $out .= '<source-app name="EndNote" version="16.0">EndNote</source-app>';
             $out .= '<rec-number>' . $number . '</rec-number>';
-            $out .= '<foreign-keys><key app="EN" db-id="s55prpsswfsepue0xz25pxai2p909xtzszzv">' . $number . '</key></foreign-keys>';
+            $out .= '<foreign-keys><key app="EN" db-id="s55prpsswfsepue0xz25pxai2p909xtzszzv">'
+                    . $number . '</key></foreign-keys>';
             $out .= '<ref-type name="Journal Article">17</ref-type>';
 
             $out .= '<contributors><authors>';
+
             foreach ($ref['authors'] as $author) {
                 $out .= '<author><style face="normal" font="default" size="100%">';
                 $out .= $this->escape($author) . '</style></author>';
             }
+
             $out .= '</authors></contributors>';
 
             $out .= '<titles>';
-            $out .= '<title><style face="normal" font="default" size="100%">' . $this->escape($ref['title']) . '</style></title>';
+            $out .= '<title><style face="normal" font="default" size="100%">'
+                    . $this->escape($ref['title']) . '</style></title>';
             $out .= '<secondary-title><style face="normal" font="default" size="100%">';
             if (isset($ref['title-secondary']) && $ref['title-secondary']) {
                 $out .= $this->escape($ref['title-secondary']);
@@ -134,7 +144,8 @@ class EndNoteXmlDriver extends AbstractDriver
             if (isset($ref['urls']) && $ref['urls']) {
                 $out .= '<urls><related-urls>';
                 foreach ((array) $ref['urls'] as $url) {
-                    $out .= '<url><style face="normal" font="default" size="100%">' . $this->escape($url) . '</style></url>';
+                    $out .= '<url><style face="normal" font="default" size="100%">'
+                            . $this->escape($url) . '</style></url>';
                 }
                 $out .= '</related-urls></urls>';
             }
@@ -152,29 +163,35 @@ class EndNoteXmlDriver extends AbstractDriver
     * @return string The content of $xmlnode
     * @access protected
     */
-    protected function getText($xmlnode) {
+    protected function getText($xmlnode)
+    {
         return (string) $xmlnode[0][0];
     }
 
-    function import($xml) {
+    public function import($xml)
+    {
         $dom = new \SimpleXMLElement($xml);
         $imported = [];
         foreach ($dom->records->record as $record) {
             $ref = new RefLib\Reference();
 
-            foreach ($record->xpath('contributors/authors/author/style/text()') as $authors) 
+            foreach ($record->xpath('contributors/authors/author/style/text()') as $authors) {
                 $ref['authors'][] = $this->getText($authors);
+            }
 
-            foreach ($record->xpath('urls/related-urls/url/style/text()') as $url) 
+            foreach ($record->xpath('urls/related-urls/url/style/text()') as $url) {
                 $ref['urls'][] = $this->getText($url);
+            }
 
-            if ($find = $record->xpath("dates/pub-dates/date/style/text()"))
+            if ($find = $record->xpath("dates/pub-dates/date/style/text()")) {
                 $ref['date'] = RefLib\RefLib::toEpoc($this->getText($find), $ref);
+            }
 
             // Simple key=>vals
             foreach ($this->map as $enkey => $ourkey) {
-                if (! $find = $record->xpath("$enkey/style/text()") )
+                if (! $find = $record->xpath("$enkey/style/text()")) {
                     continue;
+                }
                 $ref[$ourkey] = $this->getText($find);
             }
             $ref = RefLib\RefLib::applyFixes($ref);
@@ -185,7 +202,9 @@ class EndNoteXmlDriver extends AbstractDriver
             //     $this->parent->refs[] = $ref;
             // } elseif (is_string($this->parent->refId)) { // Use assoc array
             //     if ($this->parent->refId == 'rec-number') {
-            //         // Stupidly convert the XML object into an array - wish there were some easier way to do this but xPath doesnt seem to watch to match 'rec-number/text()'
+            //         // Stupidly convert the XML object into an array -
+            //         // wish there were some easier way to do this but xPath doesnt seem to
+            //         /// want to match 'rec-number/text()'
             //         $recArr = (array) $record;
             //         $recno = (int) $recArr['rec-number'];
             //         if (!$recno) {
