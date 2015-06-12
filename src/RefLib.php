@@ -407,25 +407,29 @@ class RefLib
     */
     public static function toEpoc($date, $ref = null)
     {
+        $tzone = date_default_timezone_get();
+        date_default_timezone_set('UTC');
+        $return = strtotime($date);
         if (preg_match('!^[0-9]{10,}$!', $date)) { // Unix time stamp
-            return $date;
+            $return = $date;
         } elseif (preg_match('!^[0-9]{4}$!', $date)) { // Just year
-            return strtotime("$date-01-01");
+            $return = strtotime("$date-01-01");
         } elseif (preg_match('!^[0-9]{4}-[0-9]{2}$!', $date)) { // Year + month
-            return strtotime("$date-01");
+            $return = strtotime("$date-01");
         } elseif ($month = array_search(
-            $date,
-            $months = array(
-                'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-            )
-        )) {
+                $date,
+                $months = array(
+                    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+                )
+            )) {
             if ($ref && isset($ref['year'])) { // We have a year to glue it to
-                return strtotime("{$ref['year']}-{$months[$month]}-01");
+                $return = strtotime("{$ref['year']}-{$months[$month]}-01");
             }
             return false; // We have the month but don't know anything else
-        }
-        return strtotime($date);
+        } 
+        date_default_timezone_set($tzone);
+        return $return;
     }
 
     /**
